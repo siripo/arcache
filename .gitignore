@@ -1,0 +1,7 @@
+doc/
+.project
+.classpath
+.settings/
+/*/target/
+/arcache-examples/
+/arcache-backend-inmemory/

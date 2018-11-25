@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <!--<parent>
+  	<groupId>org.sonatype.mavenbook.multi</groupId>
+  	<artifactId>parent</artifactId>
+  	<version>0.8-SNAPSHOT</version>
+  </parent>-->
+  <groupId>ar.com.siripo</groupId>
+  <artifactId>arcache-parent-pom</artifactId>
+  <packaging>pom</packaging>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>Main pom</name>
+  <url>https://github.com/siripo/arcache</url>
+  
+<developers>
+<developer>
+<id>siripo</id>
+<name>Mariano Santamarina</name>
+<url>https://github.com/siripo</url>
+</developer>
+</developers>
+ 
+  <modules>
+    <module>arcache-core</module>
+    <module>arcache-backend-inmemory</module>
+    <module>arcache-backend-memcached</module>
+    <module>arcache-backend-jedis</module>
+  </modules>
+  
+  <scm>
+    <connection>scm:git:https://github.com/siripo/arcache.git</connection>
+    <developerConnection>scm:git:git@github.com:siripo/arcache.git</developerConnection>
+    <url>https://github.com/siripo/arcache</url>
+  </scm>
+
+  <build>
+    <pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+        </configuration>
+      </plugin>
+    </plugins>
+    </pluginManagement>
+  </build>
+
+</project>
