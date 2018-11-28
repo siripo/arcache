@@ -1,14 +1,12 @@
 package ar.com.siripo.arcache.backend.jedis;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.codec.binary.Base64;
 
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.util.DummyFuture;
 import net.spy.memcached.CachedData;
 import net.spy.memcached.transcoders.SerializingTranscoder;
 import redis.clients.jedis.Jedis;
@@ -97,41 +95,6 @@ public class ArcacheJedisClient implements ArcacheBackendClient {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Error deconding the value", e);
 		}
-	}
-
-	private static class DummyFuture<T> implements Future<T> {
-
-		private final T theresult;
-
-		private DummyFuture(T result) {
-			theresult = result;
-		}
-
-		@Override
-		public boolean cancel(boolean mayInterruptIfRunning) {
-			return false;
-		}
-
-		@Override
-		public boolean isCancelled() {
-			return false;
-		}
-
-		@Override
-		public boolean isDone() {
-			return true;
-		}
-
-		@Override
-		public T get() throws InterruptedException, ExecutionException {
-			return theresult;
-		}
-
-		@Override
-		public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-			return theresult;
-		}
-
 	}
 
 }

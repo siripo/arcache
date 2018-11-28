@@ -9,21 +9,17 @@
 		<artifactId>arcache-parent-pom</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
-	<artifactId>arcache-backend-memcached</artifactId>
+	<artifactId>arcache-backend-inmemory</artifactId>
 	<packaging>jar</packaging>
-	<name>arcache Backend Memcached</name>
+	<name>arcache Backend InMemory</name>
 
 	<dependencies>
 		<dependency>
 			<groupId>ar.com.siripo</groupId>
 			<artifactId>arcache-core</artifactId>
 			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>net.spy</groupId>
-			<artifactId>spymemcached</artifactId>
-			<version>2.12.1</version>
+			<scope>compile</scope>
 		</dependency>
 	</dependencies>
-
+	
 </project>
