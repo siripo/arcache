@@ -23,6 +23,8 @@ public interface ArcacheReadWriteInterface {
 	 */
 	public Object get(String key) throws TimeoutException, Exception;
 
+	public Object get(String key, long timeoutMillis) throws TimeoutException, Exception;
+
 	/**
 	 * @param key
 	 * @return getCacheObject(key, defaultOperationTimeoutMillis);
@@ -34,10 +36,10 @@ public interface ArcacheReadWriteInterface {
 	 * inside the returned object
 	 * 
 	 * @param key
-	 * @param timeoutMSecs
+	 * @param timeoutMillis
 	 * @return
 	 */
-	public CacheGetResult getCacheObject(String key, long timeoutMSecs);
+	public CacheGetResult getCacheObject(String key, long timeoutMillis);
 
 	/**
 	 * Allow async get

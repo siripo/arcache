@@ -27,17 +27,15 @@ public class ArcacheInMemoryTestBackend implements ArcacheBackendClient {
 
 	@Override
 	public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
-
-		MemoryObject inMemoryObject = new MemoryObject();
-		inMemoryObject.expirationTime = System.currentTimeMillis() + (ttlSeconds * 1000);
-		inMemoryObject.data = serialize(value);
-		storage.put(key, inMemoryObject);
-
-		return new DummyFuture<Boolean>(true);
+		return new DummyFuture<Boolean>(set(key, ttlSeconds, value));
 	}
 
 	@Override
 	public Future<Object> asyncGet(String key) {
+		return new DummyFuture<Object>(get(key));
+	}
+
+	public Object get(String key) {
 		MemoryObject inMemoryObject = storage.get(key);
 		Object obj = null;
 		if (inMemoryObject != null) {
@@ -45,7 +43,17 @@ public class ArcacheInMemoryTestBackend implements ArcacheBackendClient {
 				obj = deserialize(inMemoryObject.data);
 			}
 		}
-		return new DummyFuture<Object>(obj);
+		return obj;
+	}
+
+	public boolean set(String key, int ttlSeconds, Object value) {
+
+		MemoryObject inMemoryObject = new MemoryObject();
+		inMemoryObject.expirationTime = System.currentTimeMillis() + (ttlSeconds * 1000);
+		inMemoryObject.data = serialize(value);
+		storage.put(key, inMemoryObject);
+
+		return true;
 	}
 
 	public void clear() {

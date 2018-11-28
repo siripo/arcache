@@ -5,8 +5,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
+import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -73,12 +73,23 @@ public class ArcacheClientTest {
 	}
 
 	@Test
+	public void testHit() throws Exception {
+		String key = "testHit";
+		String val = "value";
+
+		arcache.set(key, val);
+		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
+
+		assertEquals(cacheGetResult.type, CacheGetResult.Type.HIT);
+
+		assertEquals(cacheGetResult.value, val);
+	}
+
+	@Test
 	public void testMiss() throws Exception {
 		String key = "testMiss";
 
-		Future<CacheGetResult> getFuture = arcache.asyncGetCacheObject(key);
-
-		CacheGetResult cacheGetResult = getFuture.get(50, TimeUnit.MILLISECONDS);
+		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
 
 		assertEquals(cacheGetResult.type, CacheGetResult.Type.MISS);
 
@@ -87,12 +98,81 @@ public class ArcacheClientTest {
 
 	@Test
 	public void testFullExpired() throws Exception {
-		fail("Implementar caso donde supera maxTTL y vuelve como expirado");
+		String key = "testFullExpired";
+		String val = "value";
+
+		arcache.set(key, val);
+
+		// Alter the timeout
+		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
+		k.timestamp = k.timestamp - k.maxTTLSecs - 1;
+		backendClient.set(key, 10, k);
+
+		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
+
+		assertEquals(cacheGetResult.type, CacheGetResult.Type.EXPIRED);
+		assertEquals(cacheGetResult.value, val);
 	}
 
+	@SuppressWarnings("serial")
 	@Test
-	public void testProbabilisticExpire() throws Exception {
-		fail("Implementar caso donde no se da y si se da la expiracion probabilistica");
+	public void testProbabilisticExpiration() throws Exception {
+		String key = "testProbabilisticExpiration";
+		CacheGetResult cacheGetResult;
+
+		arcache.set(key, "val");
+
+		// Alter the timeout, in 20% off time
+		// The expected behavior is have a 20% of expiration probability
+		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
+		k.timestamp = k.timestamp - k.minTTLSecs - ((k.maxTTLSecs - k.minTTLSecs) * 2 / 10);
+		backendClient.set(key, 10, k);
+
+		// Expired
+		arcache.randomGenerator = new Random() {
+			public double nextDouble() {
+				return (0);
+			}
+		};
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(cacheGetResult.type, CacheGetResult.Type.EXPIRED);
+
+		// Near but Expired
+		arcache.randomGenerator = new Random() {
+			public double nextDouble() {
+				return (0.18);
+			}
+		};
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(cacheGetResult.type, CacheGetResult.Type.EXPIRED);
+
+		// Near OK
+		arcache.randomGenerator = new Random() {
+			public double nextDouble() {
+				return (0.22);
+			}
+		};
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(cacheGetResult.type, CacheGetResult.Type.HIT);
+
+		// OK
+		arcache.randomGenerator = new Random() {
+			public double nextDouble() {
+				return (0.50);
+			}
+		};
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(cacheGetResult.type, CacheGetResult.Type.HIT);
+
+		// OK
+		arcache.randomGenerator = new Random() {
+			public double nextDouble() {
+				return (1);
+			}
+		};
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(cacheGetResult.type, CacheGetResult.Type.HIT);
+
 	}
 
 }

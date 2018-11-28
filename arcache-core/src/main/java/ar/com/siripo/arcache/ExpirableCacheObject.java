@@ -1,5 +1,7 @@
 package ar.com.siripo.arcache;
 
+import java.io.Serializable;
+
 /**
  * Es el objeto que será almacenado en el backend para representar valores
  * convencionales.
@@ -7,7 +9,9 @@ package ar.com.siripo.arcache;
  * @author Mariano Santamarina
  *
  */
-public class ExpirableCacheObject {
+public class ExpirableCacheObject implements Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	/** The application domain value to be remembered and restored */
 	public Object value;

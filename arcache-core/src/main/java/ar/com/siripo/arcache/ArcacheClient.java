@@ -72,32 +72,64 @@ public class ArcacheClient implements ArcacheClientInterface {
 
 	@Override
 	public Object get(String key) throws TimeoutException, Exception {
-		// TODO Auto-generated method stub
-		return null;
+		return get(key, defaultOperationTimeoutMillis);
+	}
+
+	@Override
+	public Object get(String key, long timeoutMillis) throws TimeoutException, Exception {
+		CacheGetResult cacheGetResult = getCacheObject(key, timeoutMillis);
+		switch (cacheGetResult.type) {
+		case HIT:
+			return cacheGetResult.value;
+		case ERROR:
+		case TIMEOUT:
+			throw cacheGetResult.cause;
+		case MISS:
+		case EXPIRED:
+		case INVALIDATED:
+			return null;
+		default:
+			return new Exception("Invalid case");
+		}
 	}
 
 	@Override
 	public CacheGetResult getCacheObject(String key) {
-		// TODO Auto-generated method stub
-		return null;
+		return getCacheObject(key, defaultOperationTimeoutMillis);
 	}
 
 	@Override
-	public CacheGetResult getCacheObject(String key, long timeoutMSecs) {
-		// TODO Auto-generated method stub
-		return null;
+	public CacheGetResult getCacheObject(String key, long timeoutMillis) {
+		try {
+			Future<CacheGetResult> getFuture = asyncGetCacheObject(key);
+			CacheGetResult r = getFuture.get(timeoutMillis, TimeUnit.MILLISECONDS);
+			if (r == null) {
+				throw new NullPointerException();
+			}
+			return r;
+		} catch (TimeoutException tx) {
+			CacheGetResult err = new CacheGetResult();
+			err.type = CacheGetResult.Type.TIMEOUT;
+			err.cause = tx;
+			return err;
+
+		} catch (Exception e) {
+			CacheGetResult err = new CacheGetResult();
+			err.type = CacheGetResult.Type.ERROR;
+			err.cause = e;
+			return err;
+		}
 	}
 
 	@Override
 	public void set(String key, Object value) throws TimeoutException, Exception {
-		// TODO Auto-generated method stub
-
+		set(key, value, null);
 	}
 
 	@Override
-	public void set(String key, Object value, String[] invalidationSets) throws TimeoutException, Exception {
-		// TODO Auto-generated method stub
-
+	public void set(String key, Object value, String[] invalidationKeys) throws TimeoutException, Exception {
+		Future<Boolean> future = asyncSet(key, value, invalidationKeys);
+		future.get();
 	}
 
 	@Override
@@ -144,7 +176,7 @@ public class ArcacheClient implements ArcacheClientInterface {
 			expObj.maxTTLSecs = defaultExpirationTimeSecs;
 			expObj.minTTLSecs = defaultExpirationTimeSecs / 2;
 			String backendKey = createBackendKey(key);
-			return backendClient.asyncSet(backendKey, (int) defaultRemoveTimeSecs, backendKey);
+			return backendClient.asyncSet(backendKey, (int) defaultRemoveTimeSecs, expObj);
 
 		} catch (Exception e) {
 			return DummyFuture.createWithException(e);
