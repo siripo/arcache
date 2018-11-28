@@ -4,9 +4,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
 public interface ArcacheReadWriteInterface {
+
 	/**
-	 * Metodo de acceso mas simple y básico. Retorna null ante un miss, expired,
-	 * invalidated
+	 * This is the most basic get method.
+	 * 
+	 * It uses the defaultOperationTimeoutMillis.
+	 * 
+	 * In case of MISS, EXPIRED, INVALIDATED returns null.
+	 * 
+	 * In case of TIMEOUT throws TimeoutException.
+	 * 
+	 * In case of ERROR throws the Exception.
 	 * 
 	 * @param key
 	 * @return
@@ -15,12 +23,24 @@ public interface ArcacheReadWriteInterface {
 	 */
 	public Object get(String key) throws TimeoutException, Exception;
 
+	/**
+	 * @param key
+	 * @return getCacheObject(key, defaultOperationTimeoutMillis);
+	 */
 	public CacheGetResult getCacheObject(String key);
 
+	/**
+	 * This method never throws an exception, in case of an exception it is returned
+	 * inside the returned object
+	 * 
+	 * @param key
+	 * @param timeoutMSecs
+	 * @return
+	 */
 	public CacheGetResult getCacheObject(String key, long timeoutMSecs);
 
 	/**
-	 * Permite leer de forma asincrona un objeto de la cache.
+	 * Allow async get
 	 * 
 	 * @param key
 	 * @return
@@ -35,5 +55,9 @@ public interface ArcacheReadWriteInterface {
 
 	/** Almacena un valor y define las claves de invalidacion */
 	public void set(String key, Object value, String[] invalidationKeys) throws TimeoutException, Exception;
+
+	public Future<Boolean> asyncSet(String key, Object value);
+
+	public Future<Boolean> asyncSet(String key, Object value, String[] invalidationKeys);
 
 }
