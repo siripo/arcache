@@ -19,7 +19,7 @@ import ar.com.siripo.arcache.util.DummyFuture;
  */
 public class ArcacheInMemoryTestBackend implements ArcacheBackendClient {
 
-	private ConcurrentHashMap<String, MemoryObject> storage;
+	protected ConcurrentHashMap<String, MemoryObject> storage;
 
 	public ArcacheInMemoryTestBackend() {
 		storage = new ConcurrentHashMap<String, MemoryObject>();

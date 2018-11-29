@@ -15,7 +15,7 @@ public class CacheGetResult {
 
 	enum Type {
 		HIT, // When the value is found and it is not expired
-		MISS, // When the value is not found or it is hard invalidated
+		MISS, // When the value not found or it is hard invalidated
 		EXPIRED, // When the value is expired
 		INVALIDATED, // When the value is soft invalidated
 		TIMEOUT, // When the operation timeouts
@@ -33,4 +33,14 @@ public class CacheGetResult {
 	public boolean isHit() {
 		return type == Type.HIT;
 	}
+
+	protected CacheGetResult(Type type) {
+		this.type = type;
+	}
+
+	protected CacheGetResult(Type type, Exception cause) {
+		this(type);
+		this.cause = cause;
+	}
+
 }

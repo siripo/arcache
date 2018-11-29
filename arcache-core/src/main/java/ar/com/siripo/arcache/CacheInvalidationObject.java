@@ -6,7 +6,7 @@ import java.io.Serializable;
  * El valor a almacenar en el backend para permitir la expiracion de sets
  * 
  * Para todas las comparaciones de fechas se considerará la siguiente lógica. Se
- * cosidera la granularidad del tiempo en segundos, Se considera ademas que
+ * cosidera la granularidad del tiempo en segundos, se considera ademas que
  * puede haber un error entre los relojes.
  * 
  * Por mas que se utilicen relojes sincronizados al yoctosegundo, al utilizar
@@ -16,7 +16,7 @@ import java.io.Serializable;
  * LLamamos timeMeasurementError a la canitdad de segundos de error entre 2
  * relojes + el error propio de medir en segundos. Este valor jamas podra ser
  * cero, y se debe ajustar a las caracteristicas de la infraestuctura donde será
- * utilizado el sistema Para ser mas riguroso, se debe añadir a este error el
+ * utilizado el sistema. Para ser mas riguroso, se debe añadir a este error el
  * tiempo que demanda construir una key.
  * 
  * Si por ejemplo para crear un valor se accede a una base de datos. El time de
@@ -48,10 +48,11 @@ import java.io.Serializable;
  * 
  * 
  * Se puede ver fácilmente que si timeMeasurementError es un valor grande. Y
- * ademas invalidationWindow es cero o pequeña. Generará muchisimos errores.
+ * ademas invalidationWindow es cero o pequeña, generará muchisimos errores.
+ * 
  * Imaginar la siguiente situacion: se marca como invalida una key en time
  * STORETIME al mismo instante, en la misma maquina, y asumiendo todo perfecto,
- * se invalida esa key con time exactamente igual a STORETIME Lo que deberia
+ * se invalida esa key con time exactamente igual a STORETIME. Lo que deberia
  * ocurrir es que esta clave sea actualizada, porque puede haber ocurrido que
  * haya sido guardada y luego invaldiada (en ese orden estricto). Pero solo se
  * quiere actualizar una vez. La comparacion ( effectiveStoreTime = STORETIME -

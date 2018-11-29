@@ -21,6 +21,9 @@ public interface ArcacheConfigurationInterface {
 	/** Ventana de invalidacion default */
 	public void setDefaultInvalidationWindow(long windowSecs);
 
+	/** Do hard invalidation by default */
+	public void setDefaultHardInvalidation(boolean hardInvalidation);
+
 	/**
 	 * Permite configurar un namsepace default para todas las keys De esta forma se
 	 * puede evitar la colision de keys con otro servicio
