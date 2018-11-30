@@ -3,14 +3,14 @@ package ar.com.siripo.arcache;
 /**
  * This is returned when the cached object type is not the expected
  * 
- * @author mariano
+ * @author Mariano Santamarina
  *
  */
 public class UnexpectedObjectType extends Exception {
 
 	private static final long serialVersionUID = 1L;
-	private Class<?> expectedClass;
-	private Class<?> foundClass;
+	protected Class<?> expectedClass;
+	protected Class<?> foundClass;
 
 	public UnexpectedObjectType(Class<?> expected, Class<?> found) {
 		super();

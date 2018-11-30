@@ -1,6 +1,7 @@
 package ar.com.siripo.arcache;
 
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -9,7 +10,7 @@ import ar.com.siripo.arcache.CacheGetResult.Type;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 import ar.com.siripo.arcache.util.DummyFuture;
 
-public class ArcacheClient implements ArcacheClientInterface {
+public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder {
 
 	protected long defaultOperationTimeoutMillis = 500;
 	protected long timeMeasurementErrorSecs = 4;
@@ -19,7 +20,7 @@ public class ArcacheClient implements ArcacheClientInterface {
 	protected String keyDelimiter = "|";
 	protected String invalidationKeyPrefix = "InvKey";
 	protected long defaultExpirationTimeSecs = 3600;
-	protected long defaultRemoveTimeSecs = 86400;
+	protected long defaultStoredObjectRemovalTimeSecs = 86400;
 
 	protected ArcacheBackendClient backendClient;
 
@@ -32,22 +33,51 @@ public class ArcacheClient implements ArcacheClientInterface {
 
 	@Override
 	public void setDefaultOperationTimeout(long timeoutMillis) {
+		if (timeoutMillis <= 0) {
+			throw new IllegalArgumentException();
+		}
 		defaultOperationTimeoutMillis = timeoutMillis;
 	}
 
 	@Override
+	public long getDefaultOperationTimeout() {
+		return defaultOperationTimeoutMillis;
+	}
+
+	@Override
 	public void setTimeMeasurementError(long errorSecs) {
+		if (errorSecs < 0) {
+			throw new IllegalArgumentException();
+		}
 		timeMeasurementErrorSecs = errorSecs;
 	}
 
 	@Override
+	public long getTimeMeasurementError() {
+		return timeMeasurementErrorSecs;
+	}
+
+	@Override
 	public void setDefaultInvalidationWindow(long windowSecs) {
+		if (windowSecs < 0) {
+			throw new IllegalArgumentException();
+		}
 		defaultInvalidationWindowSecs = windowSecs;
+	}
+
+	@Override
+	public long getDefaultInvalidationWindow() {
+		return defaultInvalidationWindowSecs;
 	}
 
 	@Override
 	public void setDefaultHardInvalidation(boolean hardInvalidation) {
 		defaultHardInvalidation = hardInvalidation;
+	}
+
+	@Override
+	public boolean getDefaultHardInvalidation() {
+		return defaultHardInvalidation;
 	}
 
 	@Override
@@ -59,19 +89,47 @@ public class ArcacheClient implements ArcacheClientInterface {
 	}
 
 	@Override
+	public String getKeyNamespace() {
+		return keyNamespace;
+	}
+
+	@Override
 	public void setKeyDelimiter(String keyDelimiter) {
+		if ((keyDelimiter == null) || (keyDelimiter.equals(""))) {
+			throw new IllegalArgumentException("The key delimiter must be a non empty String");
+		}
 		this.keyDelimiter = keyDelimiter;
 	}
 
 	@Override
-	public void setDefaultExpirationTime(long expirationTimeSecs) {
-		this.defaultExpirationTimeSecs = expirationTimeSecs;
-
+	public String getKeyDelimiter() {
+		return this.keyDelimiter;
 	}
 
 	@Override
-	public void setDefaultRemoveTime(long removeTimeSecs) {
-		this.defaultRemoveTimeSecs = removeTimeSecs;
+	public void setDefaultExpirationTime(long expirationTimeSecs) {
+		if (expirationTimeSecs <= 0) {
+			throw new IllegalArgumentException();
+		}
+		this.defaultExpirationTimeSecs = expirationTimeSecs;
+	}
+
+	@Override
+	public long getDefaultExpirationTime() {
+		return this.defaultExpirationTimeSecs;
+	}
+
+	@Override
+	public void setDefaultStoredObjectRemovalTime(long removeTimeSecs) {
+		if (removeTimeSecs <= 0) {
+			throw new IllegalArgumentException();
+		}
+		this.defaultStoredObjectRemovalTimeSecs = removeTimeSecs;
+	}
+
+	@Override
+	public long getDefaultStoredObjectRemovalTime() {
+		return defaultStoredObjectRemovalTimeSecs;
 	}
 
 	@Override
@@ -93,7 +151,7 @@ public class ArcacheClient implements ArcacheClientInterface {
 		case INVALIDATED:
 			return null;
 		default:
-			return new Exception("Invalid case");
+			return new IllegalStateException("Unhandled cacheResultType: " + cacheGetResult.type);
 		}
 	}
 
@@ -129,7 +187,46 @@ public class ArcacheClient implements ArcacheClientInterface {
 	@Override
 	public void set(String key, Object value, String[] invalidationKeys) throws TimeoutException, Exception {
 		Future<Boolean> future = asyncSet(key, value, invalidationKeys);
-		future.get();
+		try {
+			future.get(defaultOperationTimeoutMillis, TimeUnit.MILLISECONDS);
+		} catch (ExecutionException ee) {
+			if (ee.getCause() instanceof Exception) {
+				throw (Exception) ee.getCause();
+			}
+			throw ee;
+		}
+	}
+
+	@Override
+	public Future<CacheGetResult> asyncGetCacheObject(String key) {
+		try {
+			return new CacheGetterTask(key, backendClient, (BackendKeyBuilder) this,
+					(ArcacheConfigurationGetInterface) this, this.randomGenerator);
+		} catch (Exception e) {
+			return DummyFuture.createWithException(e);
+		}
+	}
+
+	@Override
+	public Future<Boolean> asyncSet(String key, Object value, String[] invalidationKeys) {
+		try {
+			ExpirableCacheObject expObj = new ExpirableCacheObject();
+			expObj.timestamp = System.currentTimeMillis() / 1000;
+			expObj.value = value;
+			expObj.invalidationKeys = invalidationKeys;
+			expObj.maxTTLSecs = defaultExpirationTimeSecs;
+			expObj.minTTLSecs = defaultExpirationTimeSecs / 2;
+			String backendKey = createBackendKey(key);
+			return backendClient.asyncSet(backendKey, (int) defaultStoredObjectRemovalTimeSecs, expObj);
+
+		} catch (Exception e) {
+			return DummyFuture.createWithException(e);
+		}
+	}
+
+	@Override
+	public Future<Boolean> asyncSet(String key, Object value) {
+		return asyncSet(key, value, null);
 	}
 
 	@Override
@@ -151,58 +248,46 @@ public class ArcacheClient implements ArcacheClientInterface {
 	public void invalidateKey(String key, boolean hardInvalidation, long invalidationWindowSecs)
 			throws TimeoutException, Exception {
 		Future<Boolean> future = asyncInvalidateKey(key, hardInvalidation, invalidationWindowSecs);
-		future.get();
+		try {
+			future.get(defaultOperationTimeoutMillis, TimeUnit.MILLISECONDS);
+		} catch (ExecutionException ee) {
+			if (ee.getCause() instanceof Exception) {
+				throw (Exception) ee.getCause();
+			}
+			throw ee;
+		}
 	}
 
 	@Override
 	public Future<Boolean> asyncInvalidateKey(String key, boolean hardInvalidation, long invalidationWindowSecs) {
 		try {
-			return new InvalidateKeyTask(key, hardInvalidation, invalidationWindowSecs, this);
+			if (invalidationWindowSecs < 0) {
+				throw new IllegalArgumentException();
+			}
+			if (key == null || key.equals("")) {
+				throw new IllegalArgumentException();
+			}
+			return buildInvalidateKeyTask(key, hardInvalidation, invalidationWindowSecs);
 		} catch (Exception e) {
 			return DummyFuture.createWithException(e);
 		}
 	}
 
-	@Override
-	public Future<CacheGetResult> asyncGetCacheObject(String key) {
-		try {
-			return new CacheGetterTask(this, key);
-		} catch (Exception e) {
-			return DummyFuture.createWithException(e);
-		}
-	}
-
-	@Override
-	public Future<Boolean> asyncSet(String key, Object value, String[] invalidationKeys) {
-		try {
-			ExpirableCacheObject expObj = new ExpirableCacheObject();
-			expObj.timestamp = System.currentTimeMillis() / 1000;
-			expObj.value = value;
-			expObj.invalidationKeys = invalidationKeys;
-			expObj.maxTTLSecs = defaultExpirationTimeSecs;
-			expObj.minTTLSecs = defaultExpirationTimeSecs / 2;
-			String backendKey = createBackendKey(key);
-			return backendClient.asyncSet(backendKey, (int) defaultRemoveTimeSecs, expObj);
-
-		} catch (Exception e) {
-			return DummyFuture.createWithException(e);
-		}
-	}
-
-	@Override
-	public Future<Boolean> asyncSet(String key, Object value) {
-		return asyncSet(key, value, null);
+	protected Future<Boolean> buildInvalidateKeyTask(final String key, final boolean hardInvalidation,
+			final long invalidationWindowSecs) {
+		return new InvalidateKeyTask(key, hardInvalidation, invalidationWindowSecs, backendClient,
+				(BackendKeyBuilder) this, (ArcacheConfigurationGetInterface) this);
 	}
 
 	/** Create the key to be used in the backend client */
-	protected String createBackendKey(String userKey) {
+	public String createBackendKey(String userKey) {
 		if (keyNamespace == null) {
 			return userKey;
 		}
 		return keyNamespace + keyDelimiter + userKey;
 	}
 
-	protected String createInvalidationBackendKey(String invalidationKey) {
+	public String createInvalidationBackendKey(String invalidationKey) {
 		return createBackendKey(invalidationKeyPrefix + keyDelimiter + invalidationKey);
 	}
 

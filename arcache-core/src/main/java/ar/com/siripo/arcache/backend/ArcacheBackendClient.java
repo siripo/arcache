@@ -12,7 +12,7 @@ public interface ArcacheBackendClient {
 	 * If the key is invalid IllegalArgumentException is thrown
 	 * 
 	 * @param key
-	 * @param ttlSeconds
+	 * @param ttlSeconds time to live in seconds of the stored object
 	 * @param value
 	 * @return
 	 */

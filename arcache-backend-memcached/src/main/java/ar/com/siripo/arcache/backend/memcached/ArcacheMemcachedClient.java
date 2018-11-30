@@ -8,7 +8,7 @@ import net.spy.memcached.MemcachedClientIF;
 /**
  * Adaptador de la interfaz a memcached
  * 
- * @author mariano
+ * @author Mariano Santamarina
  *
  */
 public class ArcacheMemcachedClient implements ArcacheBackendClient {

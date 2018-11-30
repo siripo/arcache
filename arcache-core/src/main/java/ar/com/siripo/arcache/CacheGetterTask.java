@@ -1,6 +1,7 @@
 package ar.com.siripo.arcache;
 
 import java.util.HashMap;
+import java.util.Random;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -8,11 +9,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import ar.com.siripo.arcache.CacheGetResult.Type;
+import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 
 public class CacheGetterTask implements Future<CacheGetResult> {
 
-	protected final ArcacheClient arcache;
 	protected final String key;
+	protected final ArcacheBackendClient backendClient;
+	protected final BackendKeyBuilder keyBuilder;
+	protected final ArcacheConfigurationGetInterface config;
+	protected final Random random;
 	protected boolean cancelled = false;
 	protected boolean done = false;
 	protected CacheGetResult valueToReturn;
@@ -21,14 +26,19 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	protected Future<Object> mainFutureGet;
 	protected HashMap<String, Future<Object>> invalidationKeysFutureGets;
 
-	protected CacheGetterTask(ArcacheClient arcache, String key) {
-		this.arcache = arcache;
+	protected CacheGetterTask(String key, ArcacheBackendClient backendClient, BackendKeyBuilder keyBuilder,
+			ArcacheConfigurationGetInterface config, Random random) {
 		this.key = key;
+		this.backendClient = backendClient;
+		this.keyBuilder = keyBuilder;
+		this.config = config;
+		this.random = random;
+
 		start();
 	}
 
 	private void start() {
-		mainFutureGet = arcache.backendClient.asyncGet(arcache.createBackendKey(key));
+		mainFutureGet = backendClient.asyncGet(keyBuilder.createBackendKey(key));
 	}
 
 	@Override
@@ -62,7 +72,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	@Override
 	public CacheGetResult get() throws InterruptedException, ExecutionException {
 		try {
-			return get(arcache.defaultOperationTimeoutMillis, TimeUnit.MILLISECONDS);
+			return get(config.getDefaultOperationTimeout(), TimeUnit.MILLISECONDS);
 		} catch (TimeoutException toe) {
 			throw new ExecutionException(toe);
 		}
@@ -159,7 +169,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			double invalidationZoneWidth = cachedObject.maxTTLSecs - cachedObject.minTTLSecs;
 			double expirationProbability = ageInZone / invalidationZoneWidth;
 
-			if (expirationProbability > arcache.randomGenerator.nextDouble()) {
+			if (expirationProbability > random.nextDouble()) {
 				return true;
 			}
 
@@ -183,7 +193,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 		// Build the missing futures
 		for (final String invkey : cachedObject.invalidationKeys) {
 			if (!invalidationKeysFutureGets.containsKey(invkey)) {
-				Future<Object> fut = arcache.backendClient.asyncGet(arcache.createInvalidationBackendKey(invkey));
+				Future<Object> fut = backendClient.asyncGet(keyBuilder.createInvalidationBackendKey(invkey));
 				invalidationKeysFutureGets.put(invkey, fut);
 			}
 		}
@@ -248,13 +258,13 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 		}
 
 		// If the key was set more recently than timeMeasurementError assume it valid
-		if ((currentTimeMillis / 1000) - arcache.timeMeasurementErrorSecs <= cachedObject.timestamp) {
+		if ((currentTimeMillis / 1000) - config.getTimeMeasurementError() <= cachedObject.timestamp) {
 			return null;
 		}
 
 		// Effective time used to test validation. The correction applied is to see the
 		// key older than read value and gain more consistency
-		long effectiveStoreTimestamp = cachedObject.timestamp - arcache.timeMeasurementErrorSecs;
+		long effectiveStoreTimestamp = cachedObject.timestamp - config.getTimeMeasurementError();
 
 		for (final String invkey : invalidationMap.keySet()) {
 			final CacheInvalidationObject invObj = invalidationMap.get(invkey);
@@ -277,7 +287,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 				double normalizedTimeInsideWindow = invalidTime / invObj.invalidationWindowSecs;
 
 				// Apply linear probability
-				if (normalizedTimeInsideWindow > arcache.randomGenerator.nextDouble()) {
+				if (normalizedTimeInsideWindow > random.nextDouble()) {
 					return new InvalidatedKey(invObj, invkey, invObj.isHardInvalidation);
 				}
 

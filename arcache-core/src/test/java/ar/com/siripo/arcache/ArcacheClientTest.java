@@ -117,7 +117,6 @@ public class ArcacheClientTest {
 		assertEquals(cacheGetResult.value, val);
 	}
 
-	@SuppressWarnings("serial")
 	@Test
 	public void testProbabilisticExpiration() throws Exception {
 		String key = "testProbabilisticExpiration";

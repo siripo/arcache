@@ -6,33 +6,38 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+
 public class InvalidateKeyTask implements Future<Boolean> {
 
 	protected final String key;
 	protected final boolean hardInvalidation;
 	protected final long invalidationWindowSecs;
-	protected final ArcacheClient arcache;
+	protected final ArcacheBackendClient backendClient;
+	protected final BackendKeyBuilder keyBuilder;
+	protected final ArcacheConfigurationGetInterface config;
 
 	protected boolean cancelled = false;
 	protected boolean done = false;
 	protected Boolean valueToReturn;
-	protected ExecutionException exceptionToThrow;
 
 	protected Future<Object> prevVersionGetFuture;
 	protected Future<Boolean> setFuture;
 
 	protected InvalidateKeyTask(String key, boolean hardInvalidation, long invalidationWindowSecs,
-			ArcacheClient arcache) {
+			ArcacheBackendClient backendClient, BackendKeyBuilder keyBuilder, ArcacheConfigurationGetInterface config) {
 
 		this.key = key;
 		this.hardInvalidation = hardInvalidation;
 		this.invalidationWindowSecs = invalidationWindowSecs;
-		this.arcache = arcache;
+		this.backendClient = backendClient;
+		this.keyBuilder = keyBuilder;
+		this.config = config;
 		start();
 	}
 
 	private void start() {
-		prevVersionGetFuture = arcache.backendClient.asyncGet(arcache.createInvalidationBackendKey(key));
+		prevVersionGetFuture = backendClient.asyncGet(keyBuilder.createInvalidationBackendKey(key));
 	}
 
 	@Override
@@ -63,7 +68,7 @@ public class InvalidateKeyTask implements Future<Boolean> {
 	@Override
 	public Boolean get() throws InterruptedException, ExecutionException {
 		try {
-			return get(arcache.defaultOperationTimeoutMillis, TimeUnit.MILLISECONDS);
+			return get(config.getDefaultOperationTimeout(), TimeUnit.MILLISECONDS);
 		} catch (TimeoutException toe) {
 			throw new ExecutionException(toe);
 		}
@@ -83,9 +88,6 @@ public class InvalidateKeyTask implements Future<Boolean> {
 			throw new CancellationException();
 		}
 		if (done) {
-			if (exceptionToThrow != null) {
-				throw exceptionToThrow;
-			}
 			return valueToReturn;
 		}
 
@@ -129,8 +131,8 @@ public class InvalidateKeyTask implements Future<Boolean> {
 
 		}
 
-		setFuture = arcache.backendClient.asyncSet(arcache.createInvalidationBackendKey(key),
-				(int) arcache.defaultOperationTimeoutMillis, invalidationObject);
+		setFuture = backendClient.asyncSet(keyBuilder.createInvalidationBackendKey(key),
+				(int) config.getDefaultStoredObjectRemovalTime(), invalidationObject);
 
 		remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
 		if (remainingTime <= 0) {

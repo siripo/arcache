@@ -16,7 +16,7 @@ import redis.clients.jedis.ShardedJedis;
 /**
  * Adaptador de la interfaz a Redis via Jedis
  * 
- * @author mariano
+ * @author Mariano Santamarina
  *
  */
 public class ArcacheJedisClient implements ArcacheBackendClient {

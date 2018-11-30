@@ -34,6 +34,18 @@ public class CacheGetResult {
 		return type == Type.HIT;
 	}
 
+	public boolean isHitOrExpired() {
+		return type == Type.HIT || type == Type.EXPIRED;
+	}
+
+	public boolean isHitExpiredOrInvalidated() {
+		return type == Type.HIT || type == Type.EXPIRED || type == Type.INVALIDATED;
+	}
+
+	public boolean hasAnyTypeOfError() {
+		return type == Type.TIMEOUT || type == Type.ERROR;
+	}
+
 	protected CacheGetResult(Type type) {
 		this.type = type;
 	}
