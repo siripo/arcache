@@ -26,13 +26,13 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 
 	protected Random randomGenerator;
 
-	public ArcacheClient(ArcacheBackendClient backendClient) {
+	public ArcacheClient(final ArcacheBackendClient backendClient) {
 		this.backendClient = backendClient;
 		randomGenerator = new Random();
 	}
 
 	@Override
-	public void setDefaultOperationTimeout(long timeoutMillis) {
+	public void setDefaultOperationTimeout(final long timeoutMillis) {
 		if (timeoutMillis <= 0) {
 			throw new IllegalArgumentException();
 		}
@@ -45,7 +45,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public void setTimeMeasurementError(long errorSecs) {
+	public void setTimeMeasurementError(final long errorSecs) {
 		if (errorSecs < 0) {
 			throw new IllegalArgumentException();
 		}
@@ -58,7 +58,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public void setDefaultInvalidationWindow(long windowSecs) {
+	public void setDefaultInvalidationWindow(final long windowSecs) {
 		if (windowSecs < 0) {
 			throw new IllegalArgumentException();
 		}
@@ -71,7 +71,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public void setDefaultHardInvalidation(boolean hardInvalidation) {
+	public void setDefaultHardInvalidation(final boolean hardInvalidation) {
 		defaultHardInvalidation = hardInvalidation;
 	}
 
@@ -81,7 +81,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public void setKeyNamespace(String namespace) {
+	public void setKeyNamespace(final String namespace) {
 		keyNamespace = namespace;
 		if ("".equals(keyNamespace)) {
 			keyNamespace = null;
@@ -94,7 +94,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public void setKeyDelimiter(String keyDelimiter) {
+	public void setKeyDelimiter(final String keyDelimiter) {
 		if ((keyDelimiter == null) || (keyDelimiter.equals(""))) {
 			throw new IllegalArgumentException("The key delimiter must be a non empty String");
 		}
@@ -107,7 +107,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public void setDefaultExpirationTime(long expirationTimeSecs) {
+	public void setDefaultExpirationTime(final long expirationTimeSecs) {
 		if (expirationTimeSecs <= 0) {
 			throw new IllegalArgumentException();
 		}
@@ -120,7 +120,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public void setDefaultStoredObjectRemovalTime(long removeTimeSecs) {
+	public void setDefaultStoredObjectRemovalTime(final long removeTimeSecs) {
 		if (removeTimeSecs <= 0) {
 			throw new IllegalArgumentException();
 		}
@@ -133,13 +133,13 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public Object get(String key) throws TimeoutException, Exception {
+	public Object get(final String key) throws TimeoutException, Exception {
 		return get(key, defaultOperationTimeoutMillis);
 	}
 
 	@Override
-	public Object get(String key, long timeoutMillis) throws TimeoutException, Exception {
-		CacheGetResult cacheGetResult = getCacheObject(key, timeoutMillis);
+	public Object get(final String key, final long timeoutMillis) throws TimeoutException, Exception {
+		final CacheGetResult cacheGetResult = getCacheObject(key, timeoutMillis);
 		switch (cacheGetResult.type) {
 		case HIT:
 			return cacheGetResult.value;
@@ -151,17 +151,17 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 		case INVALIDATED:
 			return null;
 		default:
-			return new IllegalStateException("Unhandled cacheResultType: " + cacheGetResult.type);
+			throw new IllegalStateException("Unhandled cacheResultType: " + cacheGetResult.type);
 		}
 	}
 
 	@Override
-	public CacheGetResult getCacheObject(String key) {
+	public CacheGetResult getCacheObject(final String key) {
 		return getCacheObject(key, defaultOperationTimeoutMillis);
 	}
 
 	@Override
-	public CacheGetResult getCacheObject(String key, long timeoutMillis) {
+	public CacheGetResult getCacheObject(final String key, final long timeoutMillis) {
 		try {
 			Future<CacheGetResult> getFuture = asyncGetCacheObject(key);
 			CacheGetResult r = getFuture.get(timeoutMillis, TimeUnit.MILLISECONDS);
@@ -172,7 +172,14 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 		} catch (TimeoutException tx) {
 			CacheGetResult err = new CacheGetResult(Type.TIMEOUT, tx);
 			return err;
-
+		} catch (ExecutionException ee) {
+			CacheGetResult err;
+			if (ee.getCause() instanceof Exception) {
+				err = new CacheGetResult(Type.ERROR, (Exception) ee.getCause());
+			} else {
+				err = new CacheGetResult(Type.ERROR, ee);
+			}
+			return err;
 		} catch (Exception e) {
 			CacheGetResult err = new CacheGetResult(Type.ERROR, e);
 			return err;
@@ -180,12 +187,30 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public void set(String key, Object value) throws TimeoutException, Exception {
+	public Future<CacheGetResult> asyncGetCacheObject(final String key) {
+		try {
+			if (key == null || key.equals("")) {
+				throw new IllegalArgumentException();
+			}
+			return buildCacheGetterTask(key);
+		} catch (Exception e) {
+			return DummyFuture.createWithException(e);
+		}
+	}
+
+	protected Future<CacheGetResult> buildCacheGetterTask(final String key) {
+		return new CacheGetterTask(key, backendClient, (BackendKeyBuilder) this,
+				(ArcacheConfigurationGetInterface) this, this.randomGenerator);
+	}
+
+	@Override
+	public void set(final String key, final Object value) throws TimeoutException, Exception {
 		set(key, value, null);
 	}
 
 	@Override
-	public void set(String key, Object value, String[] invalidationKeys) throws TimeoutException, Exception {
+	public void set(final String key, final Object value, final String[] invalidationKeys)
+			throws TimeoutException, Exception {
 		Future<Boolean> future = asyncSet(key, value, invalidationKeys);
 		try {
 			future.get(defaultOperationTimeoutMillis, TimeUnit.MILLISECONDS);
@@ -198,18 +223,16 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public Future<CacheGetResult> asyncGetCacheObject(String key) {
-		try {
-			return new CacheGetterTask(key, backendClient, (BackendKeyBuilder) this,
-					(ArcacheConfigurationGetInterface) this, this.randomGenerator);
-		} catch (Exception e) {
-			return DummyFuture.createWithException(e);
-		}
+	public Future<Boolean> asyncSet(final String key, final Object value) {
+		return asyncSet(key, value, null);
 	}
 
 	@Override
-	public Future<Boolean> asyncSet(String key, Object value, String[] invalidationKeys) {
+	public Future<Boolean> asyncSet(final String key, final Object value, final String[] invalidationKeys) {
 		try {
+			if (key == null || key.equals("")) {
+				throw new IllegalArgumentException();
+			}
 			ExpirableCacheObject expObj = new ExpirableCacheObject();
 			expObj.timestamp = System.currentTimeMillis() / 1000;
 			expObj.value = value;
@@ -225,27 +248,22 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public Future<Boolean> asyncSet(String key, Object value) {
-		return asyncSet(key, value, null);
-	}
-
-	@Override
-	public void invalidateKey(String key) throws TimeoutException, Exception {
+	public void invalidateKey(final String key) throws TimeoutException, Exception {
 		invalidateKey(key, defaultInvalidationWindowSecs);
 	}
 
 	@Override
-	public void invalidateKey(String key, long invalidationWindowSecs) throws TimeoutException, Exception {
+	public void invalidateKey(final String key, final long invalidationWindowSecs) throws TimeoutException, Exception {
 		invalidateKey(key, defaultHardInvalidation, invalidationWindowSecs);
 	}
 
 	@Override
-	public void invalidateKey(String key, boolean hardInvalidation) throws TimeoutException, Exception {
+	public void invalidateKey(final String key, final boolean hardInvalidation) throws TimeoutException, Exception {
 		invalidateKey(key, hardInvalidation, defaultInvalidationWindowSecs);
 	}
 
 	@Override
-	public void invalidateKey(String key, boolean hardInvalidation, long invalidationWindowSecs)
+	public void invalidateKey(final String key, final boolean hardInvalidation, final long invalidationWindowSecs)
 			throws TimeoutException, Exception {
 		Future<Boolean> future = asyncInvalidateKey(key, hardInvalidation, invalidationWindowSecs);
 		try {
@@ -259,7 +277,8 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	@Override
-	public Future<Boolean> asyncInvalidateKey(String key, boolean hardInvalidation, long invalidationWindowSecs) {
+	public Future<Boolean> asyncInvalidateKey(final String key, final boolean hardInvalidation,
+			final long invalidationWindowSecs) {
 		try {
 			if (invalidationWindowSecs < 0) {
 				throw new IllegalArgumentException();
@@ -280,14 +299,14 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	/** Create the key to be used in the backend client */
-	public String createBackendKey(String userKey) {
+	public String createBackendKey(final String userKey) {
 		if (keyNamespace == null) {
 			return userKey;
 		}
 		return keyNamespace + keyDelimiter + userKey;
 	}
 
-	public String createInvalidationBackendKey(String invalidationKey) {
+	public String createInvalidationBackendKey(final String invalidationKey) {
 		return createBackendKey(invalidationKeyPrefix + keyDelimiter + invalidationKey);
 	}
 
