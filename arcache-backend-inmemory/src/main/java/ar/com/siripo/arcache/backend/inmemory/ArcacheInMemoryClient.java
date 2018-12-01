@@ -65,8 +65,8 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 	}
 
 	/**
-	 * Get the bytes representing the given serialized object. From:
-	 * {@link net.spy.memcached.transcoders.BaseSerializingTranscoder}
+	 * Get the bytes representing the given serialized object. Original Source:
+	 * net.spy.memcached.transcoders.BaseSerializingTranscoder
 	 */
 	protected byte[] serialize(Object o) {
 		if (o == null) {
@@ -98,8 +98,8 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 	}
 
 	/**
-	 * Get the object represented by the given serialized bytes. From:
-	 * {@link net.spy.memcached.transcoders.BaseSerializingTranscoder}
+	 * Get the object represented by the given serialized bytes. Original Source:
+	 * net.spy.memcached.transcoders.BaseSerializingTranscoder
 	 */
 	protected Object deserialize(byte[] in) {
 		Object rv = null;

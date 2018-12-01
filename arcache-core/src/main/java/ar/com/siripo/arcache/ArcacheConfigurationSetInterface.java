@@ -3,8 +3,9 @@ package ar.com.siripo.arcache;
 public interface ArcacheConfigurationSetInterface {
 
 	/**
-	 * set the default timeout used in operations, when a call sync method without
-	 * timeout, this is used
+	 * 
+	 * @param timeoutMillis timeoutMillis the default timeout to be used in backend
+	 *                      operations
 	 */
 	public void setDefaultOperationTimeout(long timeoutMillis);
 
@@ -14,21 +15,29 @@ public interface ArcacheConfigurationSetInterface {
 	 * relojes de la infraestructura involucrada) maxKeyCreationTime (Tiempo (95pt)
 	 * que demanda generar un valor a ser almacenado)
 	 * 
-	 * @param error_s
+	 * @param errorSecs the time measurament error in seconds
 	 */
 	public void setTimeMeasurementError(long errorSecs);
 
-	/** Ventana de invalidacion default */
+	/**
+	 * set the default invalidation window, this is the ammount of time to do
+	 * probabilistic invalidation.
+	 * 
+	 * @param windowSecs invalidation window in seconds
+	 */
 	public void setDefaultInvalidationWindow(long windowSecs);
 
-	/** Do hard invalidation by default */
+	/**
+	 * 
+	 * @param hardInvalidation default type of invalidation to be used
+	 */
 	public void setDefaultHardInvalidation(boolean hardInvalidation);
 
 	/**
 	 * Permite configurar un namsepace default para todas las keys De esta forma se
 	 * puede evitar la colision de keys con otro servicio
 	 * 
-	 * @param namespace
+	 * @param namespace ...
 	 */
 	public void setKeyNamespace(String namespace);
 
@@ -36,14 +45,14 @@ public interface ArcacheConfigurationSetInterface {
 	 * Permite configurar un delimitador default para las keys el mismo sera
 	 * utilizado par separar las keys de invalidacion y el namespace
 	 * 
-	 * @param keyDelimiter
+	 * @param keyDelimiter ...
 	 */
 	public void setKeyDelimiter(String keyDelimiter);
 
 	/**
 	 * Sets the default value to be used to consider a cached object expired
 	 * 
-	 * @param expirationTimeSecs
+	 * @param expirationTimeSecs ...
 	 */
 	public void setDefaultExpirationTime(long expirationTimeSecs);
 
@@ -51,7 +60,7 @@ public interface ArcacheConfigurationSetInterface {
 	 * Sets the default value to be used to set the lifetime of the object at
 	 * backend level. When this time is reached the object is expected to be removed
 	 * 
-	 * @param ttlSecs
+	 * @param removeTimeSecs ...
 	 */
 	public void setDefaultStoredObjectRemovalTime(long removeTimeSecs);
 

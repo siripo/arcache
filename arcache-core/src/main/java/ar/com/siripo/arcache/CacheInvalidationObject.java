@@ -2,7 +2,7 @@ package ar.com.siripo.arcache;
 
 import java.io.Serializable;
 
-/**
+/*
  * El valor a almacenar en el backend para permitir la expiracion de sets
  * 
  * Para todas las comparaciones de fechas se considerará la siguiente lógica. Se
@@ -104,14 +104,14 @@ public class CacheInvalidationObject implements Serializable {
 	public long invalidationWindowSecs;
 
 	/**
-	 * Si aqui hay un valor>0, todas las claves que sean anteriores a esta fecha se
-	 * consideraran invalidas hard
+	 * if this has a value greater than zero, all the keys older than this timestamp
+	 * are considered hard invalidated.
 	 */
 	public long lastHardInvalidationTimestamp;
 
 	/**
-	 * Si aqui hay un valor>0, todas las claves que sean anteriores a esta fecha se
-	 * consideraran invalidas soft.
+	 * if this has a value greater than zero, all the keys older than this timestamp
+	 * are considered soft invalidated.
 	 */
 	public long lastSoftInvalidationTimestamp;
 

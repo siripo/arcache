@@ -3,4 +3,5 @@ doc/
 .classpath
 .settings/
 /*/target/
+/target/
 /arcache-examples/

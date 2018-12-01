@@ -18,8 +18,13 @@ public interface ArcacheInvalidationInterface {
 	public void invalidateKey(String key, long invalidationWindowSecs) throws TimeoutException, Exception;
 
 	/**
-	 * Invalida una key de forma soft o hard, utilizando el invalidationWindow
-	 * default
+	 * Invalidates a key using the default invalidationWindow
+	 * 
+	 * @param key
+	 * @param hardInvalidation
+	 * @throws TimeoutException when the operation exceeds the
+	 *                          DefaultOperationTimeout
+	 * @throws Exception        when there is a problem with the backend operation
 	 */
 	public void invalidateKey(String key, boolean hardInvalidation) throws TimeoutException, Exception;
 
