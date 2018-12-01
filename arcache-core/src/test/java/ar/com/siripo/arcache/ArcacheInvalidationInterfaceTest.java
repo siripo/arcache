@@ -13,19 +13,19 @@ import org.junit.Before;
 import org.junit.Test;
 
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
-import ar.com.siripo.arcache.backend.test.ArcacheInMemoryTestBackend;
+import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
 import ar.com.siripo.arcache.util.DummyFuture;
 
 public class ArcacheInvalidationInterfaceTest {
 
-	ArcacheInMemoryTestBackend backendClient;
+	ArcacheInMemoryClient backendClient;
 	BuildInvalidateKeyTaskInterceptor interceptor;
 	ArcacheInvalidationInterface invalidationInterface;
 	ArcacheConfigurationInterface config;
 
 	@Before
 	public void setUp() throws Exception {
-		backendClient = new ArcacheInMemoryTestBackend();
+		backendClient = new ArcacheInMemoryClient();
 		interceptor = new BuildInvalidateKeyTaskInterceptor(backendClient);
 		invalidationInterface = interceptor;
 		config = interceptor;

@@ -15,19 +15,19 @@ import org.junit.Before;
 import org.junit.Test;
 
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
-import ar.com.siripo.arcache.backend.test.ArcacheInMemoryTestBackend;
+import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
 import ar.com.siripo.arcache.util.DummyFuture;
 
 public class ArcacheReadWriteInterfaceTest {
 
-	ArcacheInMemoryTestBackend backendClient;
+	ArcacheInMemoryClient backendClient;
 	BuildCacheGetterTaskInterceptor rinterceptor;
 	ArcacheReadWriteInterface rInterface;
 	ArcacheConfigurationInterface rconfig;
 
 	@Before
 	public void setUp() throws Exception {
-		backendClient = new ArcacheInMemoryTestBackend();
+		backendClient = new ArcacheInMemoryClient();
 		rinterceptor = new BuildCacheGetterTaskInterceptor(backendClient);
 		rInterface = rinterceptor;
 		rconfig = rinterceptor;
@@ -331,7 +331,7 @@ public class ArcacheReadWriteInterfaceTest {
 		// White Box test
 		final ArcacheClient cliorig = new ArcacheClient(backendClient);
 
-		ArcacheBackendClient backendClientx = new ArcacheInMemoryTestBackend() {
+		ArcacheBackendClient backendClientx = new ArcacheInMemoryClient() {
 			@Override
 			public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
 				ExpirableCacheObject expObj = (ExpirableCacheObject) value;
@@ -349,7 +349,7 @@ public class ArcacheReadWriteInterfaceTest {
 		clix.asyncSet("key", "val", new String[] { "a", "b" });
 
 		// Test handle Exception
-		ArcacheBackendClient backendClientEx = new ArcacheInMemoryTestBackend() {
+		ArcacheBackendClient backendClientEx = new ArcacheInMemoryClient() {
 			@Override
 			public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
 				throw new IllegalStateException();

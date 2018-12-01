@@ -6,13 +6,24 @@
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>ar.com.siripo</groupId>
-		<artifactId>arcache-parent-pom</artifactId>
+		<artifactId>arcache-main-pom</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 	<artifactId>arcache-core</artifactId>
 	<packaging>jar</packaging>
-	<name>arcache Core</name>
+	<name>Advanced Resilient Cache Core</name>
 
 	<dependencies>
+		<dependency>
+			<groupId>ar.com.siripo</groupId>
+			<artifactId>arcache-common</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>ar.com.siripo</groupId>
+			<artifactId>arcache-backend-inmemory</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>

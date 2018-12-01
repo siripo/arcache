@@ -9,21 +9,10 @@
 		<artifactId>arcache-main-pom</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
-	<artifactId>arcache-backend-memcached</artifactId>
+	<artifactId>arcache-common</artifactId>
 	<packaging>jar</packaging>
-	<name>Advanced Resilient Cache Backend Memcached</name>
+	<name>Advanced Resilient Cache Common</name>
 
 	<dependencies>
-		<dependency>
-			<groupId>ar.com.siripo</groupId>
-			<artifactId>arcache-common</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>net.spy</groupId>
-			<artifactId>spymemcached</artifactId>
-			<version>2.12.1</version>
-		</dependency>
 	</dependencies>
-
 </project>

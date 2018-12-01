@@ -19,17 +19,17 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
-import ar.com.siripo.arcache.backend.test.ArcacheInMemoryTestBackend;
+import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ArcacheClientTest {
 
-	ArcacheInMemoryTestBackend backendClient;
+	ArcacheInMemoryClient backendClient;
 	ArcacheClient arcache;
 
 	@Before
 	public void setUp() throws Exception {
-		backendClient = new ArcacheInMemoryTestBackend();
+		backendClient = new ArcacheInMemoryClient();
 		arcache = new ArcacheClient(backendClient);
 		arcache.setDefaultHardInvalidation(false);
 	}

@@ -1,11 +1,9 @@
 package ar.com.siripo.arcache.backend.inmemory;
 
-public class ArcacheInMemoryObject {
+public class MemoryObject {
 	// Expiration time expressed in milliseconds
 	long expirationTime;
 
 	byte[] data;
 
-	protected ArcacheInMemoryObject() {
-	}
 }
