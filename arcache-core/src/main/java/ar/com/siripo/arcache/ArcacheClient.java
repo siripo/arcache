@@ -26,9 +26,23 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 
 	protected Random randomGenerator;
 
-	public ArcacheClient(final ArcacheBackendClient backendClient) {
-		this.backendClient = backendClient;
+	public ArcacheClient() {
 		randomGenerator = new Random();
+	}
+	
+	protected ArcacheClient(ArcacheBackendClient backendClient) {
+		this();
+		setBackendClient(backendClient);
+	}
+	
+	@Override
+	public void setBackendClient(ArcacheBackendClient backendClient) {
+		this.backendClient=backendClient;
+	}
+	
+	@Override
+	public ArcacheBackendClient getBackendClient() {
+		return backendClient;
 	}
 
 	@Override

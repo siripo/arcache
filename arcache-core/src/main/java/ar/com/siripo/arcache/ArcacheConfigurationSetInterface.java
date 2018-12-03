@@ -1,5 +1,7 @@
 package ar.com.siripo.arcache;
 
+import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+
 public interface ArcacheConfigurationSetInterface {
 
 	/**
@@ -63,5 +65,9 @@ public interface ArcacheConfigurationSetInterface {
 	 * @param removeTimeSecs ...
 	 */
 	public void setDefaultStoredObjectRemovalTime(long removeTimeSecs);
+	
+	
+	
+	public void setBackendClient(ArcacheBackendClient backendClient);
 
 }

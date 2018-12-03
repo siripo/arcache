@@ -6,13 +6,16 @@ import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
 
+import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
+
 public class ArcacheConfigurationInterfaceTest {
 
 	ArcacheConfigurationInterface config;
 
 	@Before
 	public void setUp() throws Exception {
-		config = new ArcacheClient(null);
+		config = new ArcacheClient();
 	}
 
 	@Test
@@ -109,6 +112,13 @@ public class ArcacheConfigurationInterfaceTest {
 			fail();
 		} catch (IllegalArgumentException e) {
 		}
+	}
+	
+	@Test
+	public void testSetBackendClient() {
+		ArcacheBackendClient backendClient=new ArcacheInMemoryClient();
+		config.setBackendClient(backendClient);
+		assertEquals(config.getBackendClient(), backendClient);
 	}
 
 }
