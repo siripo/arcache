@@ -5,3 +5,4 @@ doc/
 /*/target/
 /target/
 /arcache-examples/
+*.versionsBackup
