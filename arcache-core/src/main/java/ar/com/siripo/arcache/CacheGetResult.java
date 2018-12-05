@@ -8,12 +8,7 @@ package ar.com.siripo.arcache;
  */
 public class CacheGetResult {
 
-	/** The user stored value */
-	public Object value;
-
-	public Exception cause;
-
-	enum Type {
+	public enum Type {
 		HIT, // When the value is found and it is not expired
 		MISS, // When the value not found or it is hard invalidated
 		EXPIRED, // When the value is expired
@@ -22,13 +17,18 @@ public class CacheGetResult {
 		ERROR // When an error other than timeout ocurrs
 	}
 
-	public Type type;
+	/** The user stored value */
+	protected Object value;
 
-	public String invalidationKeys[]; // If the cached value has invalidation Keys, are set here
+	protected Exception errorCause;
 
-	public String invalidatedByKey; // If it is INVALIDATED here is set the key that invalidates
+	protected Type type;
 
-	public long storeTimestamp; // Timestamp in seconds where the value was stored
+	protected String invalidationKeys[]; // If the cached value has invalidation Keys, are set here
+
+	protected String invalidatedKey; // If it is INVALIDATED here is set the key that invalidates
+
+	protected long storeTimestamp; // Timestamp in seconds where the value was stored
 
 	public boolean isHit() {
 		return type == Type.HIT;
@@ -42,8 +42,12 @@ public class CacheGetResult {
 		return type == Type.HIT || type == Type.EXPIRED || type == Type.INVALIDATED;
 	}
 
-	public boolean hasAnyTypeOfError() {
+	public boolean isAnyTypeOfError() {
 		return type == Type.TIMEOUT || type == Type.ERROR;
+	}
+
+	public boolean isMiss() {
+		return type == Type.MISS;
 	}
 
 	protected CacheGetResult(Type type) {
@@ -52,7 +56,93 @@ public class CacheGetResult {
 
 	protected CacheGetResult(Type type, Exception cause) {
 		this(type);
-		this.cause = cause;
+		this.errorCause = cause;
 	}
 
+	public Object getValue() {
+		return value;
+	}
+
+	public Exception getErrorCause() {
+		return errorCause;
+	}
+
+	public Type getType() {
+		return type;
+	}
+
+	public String[] getInvalidationKeys() {
+		return invalidationKeys;
+	}
+
+	public String getInvalidatedKey() {
+		return invalidatedKey;
+	}
+
+	public long getStoreTimestamp() {
+		return storeTimestamp;
+	}
+
+	public static class Builder {
+		private CacheGetResult build;
+
+		public Builder(Type type) {
+			build = new CacheGetResult(type);
+		}
+
+		public Builder(CacheGetResult ref) {
+			this(ref.type);
+			build.errorCause = ref.errorCause;
+			build.invalidatedKey = ref.invalidatedKey;
+			build.invalidationKeys = ref.invalidationKeys;
+			build.storeTimestamp = ref.storeTimestamp;
+			build.value = ref.value;
+		}
+
+		public Builder withType(Type type) {
+			build.type = type;
+			return this;
+		}
+
+		public Builder withValue(Object value) {
+			build.value = value;
+			return this;
+		}
+
+		public Builder withErrorCause(Exception errorCause) {
+			build.errorCause = errorCause;
+			return this;
+		}
+
+		public Builder withInvalidationKeys(String invalidationKeys[]) {
+			build.invalidationKeys = invalidationKeys;
+			return this;
+		}
+
+		public Builder withInvalidatedKey(String invalidatedKey) {
+			build.invalidatedKey = invalidatedKey;
+			return this;
+		}
+
+		public Builder withStoreTimestamp(long storeTimestamp) {
+			build.storeTimestamp = storeTimestamp;
+			return this;
+		}
+
+		public CacheGetResult build() {
+			return build;
+		}
+	}
+
+	public static class ErrorBuilder extends Builder {
+
+		public ErrorBuilder() {
+			super(Type.ERROR);
+		}
+
+		public ErrorBuilder(Exception errorCause) {
+			this();
+			withErrorCause(errorCause);
+		}
+	}
 }

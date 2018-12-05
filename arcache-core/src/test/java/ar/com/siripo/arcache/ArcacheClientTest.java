@@ -72,7 +72,7 @@ public class ArcacheClientTest {
 
 		assertEquals(cacheGetResult.type, CacheGetResult.Type.ERROR);
 
-		assertThat(cacheGetResult.cause, instanceOf(UnexpectedObjectType.class));
+		assertThat(cacheGetResult.errorCause, instanceOf(UnexpectedObjectType.class));
 	}
 
 	@Test
@@ -193,7 +193,7 @@ public class ArcacheClientTest {
 		cacheGetResult = arcache.getCacheObject(key);
 		assertEquals(cacheGetResult.type, CacheGetResult.Type.INVALIDATED);
 		assertEquals(cacheGetResult.value, val);
-		assertEquals(invKeys[0], cacheGetResult.invalidatedByKey);
+		assertEquals(invKeys[0], cacheGetResult.invalidatedKey);
 
 		assertArrayEquals(invKeys, cacheGetResult.invalidationKeys);
 
@@ -220,7 +220,7 @@ public class ArcacheClientTest {
 		cacheGetResult = arcache.getCacheObject(key);
 		assertEquals(cacheGetResult.type, CacheGetResult.Type.MISS);
 		assertEquals(cacheGetResult.value, null);
-		assertNull(cacheGetResult.invalidatedByKey);
+		assertNull(cacheGetResult.invalidatedKey);
 		assertNull(cacheGetResult.invalidationKeys);
 	}
 
