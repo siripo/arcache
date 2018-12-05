@@ -6,3 +6,4 @@ doc/
 /target/
 /arcache-examples/
 *.versionsBackup
+/local/

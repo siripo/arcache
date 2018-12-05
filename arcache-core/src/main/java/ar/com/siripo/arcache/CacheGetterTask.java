@@ -149,7 +149,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 				return valueToReturn;
 			}
 			result.type = Type.INVALIDATED;
-			result.invalidatedByKey = inv.key;
+			result.invalidatedKey = inv.key;
 		}
 
 		done = true;
@@ -258,7 +258,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 		}
 
 		// If the key was set more recently than timeMeasurementError assume it valid
-		if ((currentTimeMillis / 1000) - config.getTimeMeasurementError() <= cachedObject.timestamp) {
+		if ((currentTimeMillis / 1000) - config.getTimeMeasurementError() < cachedObject.timestamp) {
 			return null;
 		}
 

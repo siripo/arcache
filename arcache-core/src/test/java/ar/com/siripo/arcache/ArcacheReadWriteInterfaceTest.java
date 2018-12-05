@@ -169,27 +169,27 @@ public class ArcacheReadWriteInterfaceTest {
 		rinterceptor.assertIntercepted("NULL");
 		assertEquals(cgr.value, null);
 		assertEquals(cgr.type, CacheGetResult.Type.ERROR);
-		assertTrue(cgr.cause instanceof NullPointerException);
+		assertTrue(cgr.errorCause instanceof NullPointerException);
 
 		cgr = rInterface.getCacheObject("TimeoutException", 22);
 		assertEquals(cgr.type, CacheGetResult.Type.TIMEOUT);
-		assertTrue(cgr.cause instanceof TimeoutException);
+		assertTrue(cgr.errorCause instanceof TimeoutException);
 
 		cgr = rInterface.getCacheObject("", 22);
 		assertEquals(cgr.type, CacheGetResult.Type.ERROR);
-		assertTrue(cgr.cause instanceof IllegalArgumentException);
+		assertTrue(cgr.errorCause instanceof IllegalArgumentException);
 
 		cgr = rInterface.getCacheObject("ExecutionException", 22);
 		assertEquals(cgr.type, CacheGetResult.Type.ERROR);
-		assertTrue(cgr.cause instanceof ExecutionException);
+		assertTrue(cgr.errorCause instanceof ExecutionException);
 
 		cgr = rInterface.getCacheObject("InterruptedException", 22);
 		assertEquals(cgr.type, CacheGetResult.Type.ERROR);
-		assertTrue(cgr.cause instanceof InterruptedException);
+		assertTrue(cgr.errorCause instanceof InterruptedException);
 
 		cgr = rInterface.getCacheObject("IllegalStateException", 22);
 		assertEquals(cgr.type, CacheGetResult.Type.ERROR);
-		assertTrue(cgr.cause instanceof IllegalStateException);
+		assertTrue(cgr.errorCause instanceof IllegalStateException);
 
 	}
 

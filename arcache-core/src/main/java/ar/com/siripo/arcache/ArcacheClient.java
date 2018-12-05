@@ -159,7 +159,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 			return cacheGetResult.value;
 		case ERROR:
 		case TIMEOUT:
-			throw cacheGetResult.cause;
+			throw cacheGetResult.errorCause;
 		case MISS:
 		case EXPIRED:
 		case INVALIDATED:

@@ -113,10 +113,10 @@ public class ArcacheConfigurationInterfaceTest {
 		} catch (IllegalArgumentException e) {
 		}
 	}
-	
+
 	@Test
 	public void testSetBackendClient() {
-		ArcacheBackendClient backendClient=new ArcacheInMemoryClient();
+		ArcacheBackendClient backendClient = new ArcacheInMemoryClient();
 		config.setBackendClient(backendClient);
 		assertEquals(config.getBackendClient(), backendClient);
 	}
