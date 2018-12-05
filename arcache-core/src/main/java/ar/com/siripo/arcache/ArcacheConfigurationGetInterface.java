@@ -1,5 +1,7 @@
 package ar.com.siripo.arcache;
 
+import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+
 public interface ArcacheConfigurationGetInterface {
 
 	public long getDefaultOperationTimeout();
@@ -17,4 +19,6 @@ public interface ArcacheConfigurationGetInterface {
 	public long getDefaultExpirationTime();
 
 	public long getDefaultStoredObjectRemovalTime();
+	
+	public ArcacheBackendClient getBackendClient();
 }
