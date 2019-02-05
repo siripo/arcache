@@ -33,7 +33,19 @@ public class CacheGetResult {
 	public boolean isHit() {
 		return type == Type.HIT;
 	}
-
+	
+	public boolean isMiss() {
+		return type == Type.MISS;
+	}
+	
+	public boolean isExpired() {
+		return type == Type.EXPIRED;
+	}
+	
+	public boolean isInvalidated() {
+		return type == Type.INVALIDATED;
+	}
+	
 	public boolean isHitOrExpired() {
 		return type == Type.HIT || type == Type.EXPIRED;
 	}
@@ -46,9 +58,7 @@ public class CacheGetResult {
 		return type == Type.TIMEOUT || type == Type.ERROR;
 	}
 
-	public boolean isMiss() {
-		return type == Type.MISS;
-	}
+	
 
 	protected CacheGetResult(Type type) {
 		this.type = type;

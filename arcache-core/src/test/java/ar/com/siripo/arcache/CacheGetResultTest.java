@@ -19,6 +19,18 @@ public class CacheGetResultTest {
 		assertTrue(new CacheGetResult(Type.HIT).isHit());
 		assertFalse(new CacheGetResult(Type.EXPIRED).isHit());
 	}
+	
+	@Test
+	public void testIsExpired() {
+		assertTrue(new CacheGetResult(Type.EXPIRED).isExpired());
+		assertFalse(new CacheGetResult(Type.HIT).isExpired());
+	}
+	
+	@Test
+	public void testIsInvalidated() {
+		assertTrue(new CacheGetResult(Type.INVALIDATED).isInvalidated());
+		assertFalse(new CacheGetResult(Type.HIT).isInvalidated());
+	}
 
 	@Test
 	public void testIsHitOrExpired() {
