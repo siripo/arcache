@@ -8,6 +8,20 @@ import java.util.concurrent.TimeoutException;
 
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 
+/**
+ * This task is needed because to set a Invalidation Key is needed some previous
+ * invalidation key values if available. If two invalidation keys are set in a
+ * very short time. its equivalent to have only one set, (only in the case of
+ * the same type of invalidation).
+ * 
+ * The read (local update) write race condition is not a problem because the
+ * time shift is supposed to be very short, and the type of invalidation in this
+ * condition has a high probability to be of the same type
+ * 
+ * 
+ * @author Mariano Santamarina
+ *
+ */
 public class InvalidateKeyTask implements Future<Boolean> {
 
 	protected final String key;
