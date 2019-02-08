@@ -105,26 +105,22 @@ public class InvalidateKeyTask implements Future<Boolean> {
 			return valueToReturn;
 		}
 
-		CacheInvalidationObject lastValue = null;
-		long remainingTime;
+		CacheInvalidationObject previousInvalidationObject = getPreviousInvalidationObject(startTimeMillis,
+				timeoutMillis);
 
-		try {
-			remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
-			if (remainingTime <= 0) {
-				throw new TimeoutException();
-			}
-			Object rawCachedObject = prevVersionGetFuture.get(remainingTime, TimeUnit.MILLISECONDS);
-			if (rawCachedObject instanceof CacheInvalidationObject) {
-				lastValue = (CacheInvalidationObject) rawCachedObject;
-			}
-		} catch (TimeoutException te) {
-			throw te;
-		} catch (InterruptedException ie) {
-			throw ie;
-		} catch (Exception e) {
-			// treat as miss
-		}
+		CacheInvalidationObject invalidationObject = createInvalidationObject(startTimeMillis,
+				previousInvalidationObject);
+		
+		valueToReturn = setInvalidationObject(startTimeMillis,
+				timeoutMillis,invalidationObject);
 
+		done = true;
+
+		return valueToReturn;
+	}
+
+	protected CacheInvalidationObject createInvalidationObject(final long startTimeMillis,
+			final CacheInvalidationObject previousInvalidationObject) {
 		CacheInvalidationObject invalidationObject = new CacheInvalidationObject();
 
 		invalidationObject.invalidationTimestamp = startTimeMillis / 1000;
@@ -133,28 +129,55 @@ public class InvalidateKeyTask implements Future<Boolean> {
 		invalidationObject.lastHardInvalidationTimestamp = 0;
 		invalidationObject.lastSoftInvalidationTimestamp = 0;
 
-		if (lastValue != null) {
-			invalidationObject.lastHardInvalidationTimestamp = lastValue.lastHardInvalidationTimestamp;
-			invalidationObject.lastSoftInvalidationTimestamp = lastValue.lastSoftInvalidationTimestamp;
+		if (previousInvalidationObject != null) {
+			invalidationObject.lastHardInvalidationTimestamp = previousInvalidationObject.lastHardInvalidationTimestamp;
+			invalidationObject.lastSoftInvalidationTimestamp = previousInvalidationObject.lastSoftInvalidationTimestamp;
 
-			if (lastValue.isHardInvalidation) {
-				invalidationObject.lastHardInvalidationTimestamp = lastValue.invalidationTimestamp;
+			if (previousInvalidationObject.isHardInvalidation) {
+				invalidationObject.lastHardInvalidationTimestamp = previousInvalidationObject.invalidationTimestamp;
 			} else {
-				invalidationObject.lastSoftInvalidationTimestamp = lastValue.invalidationTimestamp;
+				invalidationObject.lastSoftInvalidationTimestamp = previousInvalidationObject.invalidationTimestamp;
 			}
 
 		}
+		return invalidationObject;
+	}
+
+	protected CacheInvalidationObject getPreviousInvalidationObject(final long startTimeMillis,
+			final long timeoutMillis) throws InterruptedException, ExecutionException, TimeoutException {
+		try {
+			long remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
+			if (remainingTime <= 0) {
+				throw new TimeoutException();
+			}
+			Object rawCachedObject = prevVersionGetFuture.get(remainingTime, TimeUnit.MILLISECONDS);
+			if (!(rawCachedObject instanceof CacheInvalidationObject)) {
+				// In case of invalid type, treat as miss
+				return null;
+			}
+			return (CacheInvalidationObject) rawCachedObject;
+		} catch (TimeoutException te) {
+			throw te;
+		} catch (InterruptedException ie) {
+			throw ie;
+		} catch (Exception e) {
+			// treat as miss
+			return null;
+		}
+	}
+
+	protected boolean setInvalidationObject(final long startTimeMillis, final long timeoutMillis,
+			CacheInvalidationObject invalidationObject)
+			throws InterruptedException, ExecutionException, TimeoutException {
 
 		setFuture = backendClient.asyncSet(keyBuilder.createInvalidationBackendKey(key),
 				(int) config.getDefaultStoredObjectRemovalTime(), invalidationObject);
 
-		remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
+		long remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
 		if (remainingTime <= 0) {
 			throw new TimeoutException();
 		}
-		valueToReturn = setFuture.get(remainingTime, TimeUnit.MILLISECONDS);
-		done = true;
-
-		return valueToReturn;
+		return setFuture.get(remainingTime, TimeUnit.MILLISECONDS);
 	}
+
 }
