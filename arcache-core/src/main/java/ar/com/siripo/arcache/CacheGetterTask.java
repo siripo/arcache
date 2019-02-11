@@ -21,7 +21,6 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	protected boolean cancelled = false;
 	protected boolean done = false;
 	protected CacheGetResult valueToReturn;
-	protected ExecutionException exceptionToThrow;
 
 	protected Future<Object> mainFutureGet;
 	protected HashMap<String, Future<Object>> invalidationKeysFutureGets;
@@ -93,9 +92,6 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			throw new CancellationException();
 		}
 		if (done) {
-			if (exceptionToThrow != null) {
-				throw exceptionToThrow;
-			}
 			return valueToReturn;
 		}
 
@@ -164,7 +160,9 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 
 			return true;
 
-		} else if ((age > cachedObject.minTTLSecs) && (cachedObject.minTTLSecs < cachedObject.maxTTLSecs)) {
+		} else if (cachedObject.minTTLSecs >= cachedObject.maxTTLSecs) {
+			return false;
+		} else if (age > cachedObject.minTTLSecs) {
 			double ageInZone = age - cachedObject.minTTLSecs;
 			double invalidationZoneWidth = cachedObject.maxTTLSecs - cachedObject.minTTLSecs;
 			double expirationProbability = ageInZone / invalidationZoneWidth;
@@ -172,7 +170,6 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			if (expirationProbability > random.nextDouble()) {
 				return true;
 			}
-
 		}
 
 		return false;

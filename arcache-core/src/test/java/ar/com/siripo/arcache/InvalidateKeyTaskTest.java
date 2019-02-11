@@ -108,7 +108,6 @@ public class InvalidateKeyTaskTest {
 
 			@Override
 			public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
-				// TODO Auto-generated method stub
 				return new DummyFuture<Boolean>(null) {
 					@Override
 					public boolean cancel(boolean mayInterruptIfRunning) {
