@@ -2,9 +2,11 @@ package ar.com.siripo.arcache;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -295,46 +297,220 @@ public class CacheGetterTaskTest {
 
 	@Test
 	public void testIsCachedObjectExpired_flows() throws Exception {
-		ExpirableCacheObject cachedObject=new ExpirableCacheObject();
-		cachedObject.timestamp=0;
-		cachedObject.minTTLSecs=5;
-		cachedObject.maxTTLSecs=10;
-		
+		ExpirableCacheObject cachedObject = new ExpirableCacheObject();
+		cachedObject.timestamp = 0;
+		cachedObject.minTTLSecs = 5;
+		cachedObject.maxTTLSecs = 10;
+
 		CacheGetterTask cgt;
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(1));
-		
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 0),false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 1),false);
-		
+
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 0), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 1), false);
+
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0));
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5000),false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5999),false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000),true);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6001),true);
-		
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5000), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5999), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000), true);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6001), true);
+
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0.5));
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000),false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000),true);
-		
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000), true);
+
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0.5));
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000),false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000),true);
-		
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000), true);
+
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(1));
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000),false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 10000),true);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 11000),true);
-		
-		cachedObject.timestamp=0;
-		cachedObject.minTTLSecs=5;
-		cachedObject.maxTTLSecs=3;
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 10000), true);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 11000), true);
+
+		cachedObject.timestamp = 0;
+		cachedObject.minTTLSecs = 5;
+		cachedObject.maxTTLSecs = 3;
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0.5));
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 2000),false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000),true);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000),true);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 2000), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000), true);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000), true);
 	}
-	
-	
+
+	@Test
+	public void testLoadInvalidationKeys() throws Exception {
+		CacheGetterTask cgt;
+		HashMap<String, CacheInvalidationObject> invMap;
+		long currentTimeMillis = System.currentTimeMillis();
+
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+
+		ExpirableCacheObject cachedObject = new ExpirableCacheObject();
+
+		// On null invalidationKeys expect null invMap
+		cachedObject.invalidationKeys = null;
+		invMap = cgt.loadInvalidationKeys(cachedObject, currentTimeMillis, 10);
+		assertNull(invMap);
+
+		// On Empty invalidationKeys expect null invMap
+		cachedObject.invalidationKeys = new String[] {};
+		invMap = cgt.loadInvalidationKeys(cachedObject, currentTimeMillis, 10);
+		assertNull(invMap);
+
+		// Create any loader for every InvKey
+		cachedObject.invalidationKeys = new String[] { "i1", "i2" };
+		cgt.invalidationKeysFutureGets = null;
+		invMap = cgt.loadInvalidationKeys(cachedObject, currentTimeMillis, 1000);
+		assertNotNull(cgt.invalidationKeysFutureGets);
+		assertNotNull(cgt.invalidationKeysFutureGets.get("i1"));
+		assertNotNull(cgt.invalidationKeysFutureGets.get("i2"));
+		assertEquals(cgt.invalidationKeysFutureGets.size(), 2);
+
+		// If the load is broken for example by a timeout, the next execution do not
+		// create new loaders.
+		Object fut1 = cgt.invalidationKeysFutureGets.get("i1");
+		Object fut2 = cgt.invalidationKeysFutureGets.get("i2");
+		invMap = cgt.loadInvalidationKeys(cachedObject, currentTimeMillis, 1000);
+		assertEquals(cgt.invalidationKeysFutureGets.size(), 2);
+		assertEquals(cgt.invalidationKeysFutureGets.get("i1"), fut1);
+		assertEquals(cgt.invalidationKeysFutureGets.get("i2"), fut2);
+
+		// If the CacheGetterTask is cancelled then loadInvalidationKeys must break with
+		// CancellationException
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cachedObject.invalidationKeys = new String[] { "i1", "i2" };
+		cgt.invalidationKeysFutureGets = null;
+		cgt.cancel(false);
+		try {
+			cgt.loadInvalidationKeys(cachedObject, currentTimeMillis, 1000);
+			fail();
+		} catch (CancellationException ce) {
+		}
+
+		// When has no more time, throws TimeoutException
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cachedObject.invalidationKeys = new String[] { "i1", "i2" };
+		cgt.invalidationKeysFutureGets = null;
+		try {
+			cgt.loadInvalidationKeys(cachedObject, currentTimeMillis - 2000, 1000);
+			fail();
+		} catch (TimeoutException te) {
+		}
+
+		// An inner exception loading Invalidation Keys propagate up.
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cachedObject.invalidationKeys = new String[] { "i1", "i2" };
+		cgt.invalidationKeysFutureGets = new HashMap<String, Future<Object>>();
+		cgt.invalidationKeysFutureGets.put("i1", new DummyFuture<Object>(null) {
+			@Override
+			public Object get(long timeout, TimeUnit unit)
+					throws InterruptedException, ExecutionException, TimeoutException {
+				expectedFlow = true;
+				flowValue = new ExecutionException(new Exception());
+				throw (ExecutionException) flowValue;
+			}
+		});
+		expectedFlow = false;
+		flowValue = null;
+		try {
+			cgt.loadInvalidationKeys(cachedObject, currentTimeMillis, 1000);
+			fail();
+		} catch (ExecutionException ee) {
+			assertEquals(ee, flowValue);
+			assertTrue(expectedFlow);
+		}
+
+		// Assert that the inner exception is propagated to CacheGetterTask get
+		arcache.set("magickey", "hola", new String[] { "theinvkey" });
+		cgt = new CacheGetterTask("magickey", backendClient, arcache, arcache, random) {
+			protected HashMap<String, CacheInvalidationObject> loadInvalidationKeys(
+					final ExpirableCacheObject cachedObject, final long startTimeMillis, final long timeoutMillis)
+					throws TimeoutException, InterruptedException, ExecutionException {
+				expectedFlow = true;
+				flowValue = new ExecutionException(new Exception());
+				throw (ExecutionException) flowValue;
+			}
+		};
+		expectedFlow = false;
+		flowValue = null;
+		try {
+			cgt.get();
+			fail();
+		} catch (ExecutionException ee) {
+			assertEquals(ee, flowValue);
+			assertTrue(expectedFlow);
+		}
+
+		// Test if getsCacheInvalidationObjectFromFuture is called from
+		// loadInvalidationKeys to test it alone
+		cgt = new CacheGetterTask("kkk", backendClient, arcache, arcache, random) {
+			protected CacheInvalidationObject getsCacheInvalidationObjectFromFuture(Future<Object> future, long timeout)
+					throws InterruptedException, ExecutionException, TimeoutException {
+				expectedFlow = true;
+				flowValue = new ExecutionException(new Exception());
+				throw (ExecutionException) flowValue;
+			}
+		};
+		cachedObject.invalidationKeys = new String[] { "i1", "i2" };
+		expectedFlow = false;
+		flowValue = null;
+		try {
+			cgt.loadInvalidationKeys(cachedObject, currentTimeMillis, 1000);
+			fail();
+		} catch (ExecutionException ee) {
+			assertEquals(ee, flowValue);
+			assertTrue(expectedFlow);
+		}
+	}
+
+	@Test
+	public void testGetsCacheInvalidationObjectFromFuture() throws Exception {
+		CacheGetterTask cgt;
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		
+		// test basic behavior, a miss
+		Future<Object> fut=new DummyFuture<Object>(null);
+		assertEquals(cgt.getsCacheInvalidationObjectFromFuture(fut,1000),null);
+		
+		// test the case of a stored valid type value
+		flowValue=new CacheInvalidationObject();
+		fut=new DummyFuture<Object>(flowValue);
+		assertEquals(cgt.getsCacheInvalidationObjectFromFuture(fut,1000),flowValue);
+		
+		/** 
+		 * When is stored a invalidation key with a valua not readeable we have a big problem.
+		 * Assume that you have two versions running at the same time. And one version invalidates a key.
+		 * But the other version is unable to read that invalidated value.
+		 * In this scenario its no way to know if the key is invalidated or not.
+		 * If we assume it invalidated then the cache will be unable to run for this key until a readable invalidation key is stored.
+		 * If we assume it as a miss, a possible inconsistency will be achieved.
+		 * 
+		 * By now we naively assume it as a miss and do not any correction.
+		 */
+		flowValue=new String("aaa");
+		fut=new DummyFuture<Object>(flowValue);
+		assertEquals(cgt.getsCacheInvalidationObjectFromFuture(fut,1000),null);
+		
+		// Test if a inner exception is propagated up
+		fut=new DummyFuture<Object>(null) {
+			@Override
+			public Object get(long timeout, TimeUnit unit)
+					throws InterruptedException, ExecutionException, TimeoutException {
+				expectedFlow = true;
+				flowValue = new ExecutionException(new Exception());
+				throw (ExecutionException) flowValue;
+			}
+		};
+		expectedFlow=false;
+		flowValue=null;
+		try {
+			cgt.getsCacheInvalidationObjectFromFuture(fut,1000);
+		}catch(Exception e) {
+			assertEquals(flowValue, e);
+			assertTrue(expectedFlow);
+		}
+		
+	}
+
 	@SuppressWarnings("serial")
 	private static class StaticDoubleRandom extends Random {
 		double rv;

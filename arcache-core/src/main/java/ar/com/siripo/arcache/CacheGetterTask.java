@@ -197,8 +197,8 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 
 		HashMap<String, CacheInvalidationObject> invMap = new HashMap<String, CacheInvalidationObject>();
 
-		// Try to retrieve the InvalidationObjects, with the big constraint of time
-		while (invMap.size() < invalidationKeysFutureGets.size()) {
+		// For every InvalidationKey load the invalidationObject
+		for (final String invkey : cachedObject.invalidationKeys) {
 
 			// if it is Cancelled, exits
 			if (cancelled) {
@@ -209,15 +209,6 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			long remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
 			if (remainingTime <= 0) {
 				throw new TimeoutException();
-			}
-
-			// Find the first not retrieved
-			String invkey = null;
-			for (final String itkey : invalidationKeysFutureGets.keySet()) {
-				if (!invMap.containsKey(itkey)) {
-					invkey = itkey;
-					break;
-				}
 			}
 
 			// Load the key
@@ -254,7 +245,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			return null;
 		}
 
-		// If the key was set more recently than timeMeasurementError assume it valid
+		// If the key was set more recently than timeMeasurementError assume its valid
 		if ((currentTimeMillis / 1000) - config.getTimeMeasurementError() < cachedObject.timestamp) {
 			return null;
 		}
