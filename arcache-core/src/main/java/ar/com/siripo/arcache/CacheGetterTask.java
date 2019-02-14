@@ -240,7 +240,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	}
 
 	protected InvalidatedKey isCachedObjectInvalidated(final ExpirableCacheObject cachedObject,
-			HashMap<String, CacheInvalidationObject> invalidationMap, final long currentTimeMillis) {
+			final HashMap<String, CacheInvalidationObject> invalidationMap, final long currentTimeMillis) {
 		if (invalidationMap == null) {
 			return null;
 		}
@@ -281,7 +281,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 
 			}
 
-			// If its older than previous hard invalidation. Its soft invalidated
+			// If its older than previous soft invalidation. Its soft invalidated
 			if (effectiveStoreTimestamp <= invObj.lastSoftInvalidationTimestamp) {
 				return new InvalidatedKey(invObj, invkey, false);
 			}

@@ -17,6 +17,7 @@ import java.util.concurrent.TimeoutException;
 import org.junit.Before;
 import org.junit.Test;
 
+import ar.com.siripo.arcache.CacheGetterTask.InvalidatedKey;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
 import ar.com.siripo.arcache.util.DummyFuture;
@@ -466,32 +467,33 @@ public class CacheGetterTaskTest {
 	public void testGetsCacheInvalidationObjectFromFuture() throws Exception {
 		CacheGetterTask cgt;
 		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
-		
+
 		// test basic behavior, a miss
-		Future<Object> fut=new DummyFuture<Object>(null);
-		assertEquals(cgt.getsCacheInvalidationObjectFromFuture(fut,1000),null);
-		
+		Future<Object> fut = new DummyFuture<Object>(null);
+		assertEquals(cgt.getsCacheInvalidationObjectFromFuture(fut, 1000), null);
+
 		// test the case of a stored valid type value
-		flowValue=new CacheInvalidationObject();
-		fut=new DummyFuture<Object>(flowValue);
-		assertEquals(cgt.getsCacheInvalidationObjectFromFuture(fut,1000),flowValue);
-		
-		/** 
-		 * When is stored a invalidation key with a valua not readeable we have a big problem.
-		 * Assume that you have two versions running at the same time. And one version invalidates a key.
-		 * But the other version is unable to read that invalidated value.
-		 * In this scenario its no way to know if the key is invalidated or not.
-		 * If we assume it invalidated then the cache will be unable to run for this key until a readable invalidation key is stored.
-		 * If we assume it as a miss, a possible inconsistency will be achieved.
+		flowValue = new CacheInvalidationObject();
+		fut = new DummyFuture<Object>(flowValue);
+		assertEquals(cgt.getsCacheInvalidationObjectFromFuture(fut, 1000), flowValue);
+
+		/*
+		 * When is stored a invalidation key with a value not readable we have a big
+		 * problem. Assume that you have two versions running at the same time. And one
+		 * version invalidates a key. But the other version is unable to read that
+		 * invalidated value. In this scenario its no way to know if the key is
+		 * invalidated or not. If we assume it invalidated then the cache will be unable
+		 * to run for this key until a readable invalidation key is stored. If we assume
+		 * it as a miss, a possible inconsistency will be achieved.
 		 * 
 		 * By now we naively assume it as a miss and do not any correction.
 		 */
-		flowValue=new String("aaa");
-		fut=new DummyFuture<Object>(flowValue);
-		assertEquals(cgt.getsCacheInvalidationObjectFromFuture(fut,1000),null);
-		
+		flowValue = new String("aaa");
+		fut = new DummyFuture<Object>(flowValue);
+		assertEquals(cgt.getsCacheInvalidationObjectFromFuture(fut, 1000), null);
+
 		// Test if a inner exception is propagated up
-		fut=new DummyFuture<Object>(null) {
+		fut = new DummyFuture<Object>(null) {
 			@Override
 			public Object get(long timeout, TimeUnit unit)
 					throws InterruptedException, ExecutionException, TimeoutException {
@@ -500,15 +502,138 @@ public class CacheGetterTaskTest {
 				throw (ExecutionException) flowValue;
 			}
 		};
-		expectedFlow=false;
-		flowValue=null;
+		expectedFlow = false;
+		flowValue = null;
 		try {
-			cgt.getsCacheInvalidationObjectFromFuture(fut,1000);
-		}catch(Exception e) {
+			cgt.getsCacheInvalidationObjectFromFuture(fut, 1000);
+		} catch (Exception e) {
 			assertEquals(flowValue, e);
 			assertTrue(expectedFlow);
 		}
-		
+
+	}
+
+	@Test
+	public void testIsCachedObjectInvalidated() {
+		CacheGetterTask cgt;
+		arcache.setTimeMeasurementError(5);
+
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+
+		long currentTimeMillis = System.currentTimeMillis();
+		ExpirableCacheObject cachedObject = new ExpirableCacheObject();
+		HashMap<String, CacheInvalidationObject> invalidationMap = new HashMap<String, CacheInvalidationObject>();
+		CacheInvalidationObject cio = new CacheInvalidationObject();
+		InvalidatedKey invKey;
+		invalidationMap.put("k1", cio);
+
+		// If the invalidationMap is null then no invalidation
+		cachedObject.timestamp = currentTimeMillis;
+		assertNull(cgt.isCachedObjectInvalidated(cachedObject, null, currentTimeMillis));
+
+		// if the stored object is older than 15 seconds and invalidated 10 seconds and
+		// invalidation window 2 seconds then invalidated
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 15;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 10;
+		cio.invalidationWindowSecs = 2;
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertEquals(invKey.cacheInvalidationObject, cio);
+
+		/*
+		 * if the stored object is older than 15 seconds and invalidated 10 seconds and
+		 * invalidation window 2 seconds then must be invalidated, but if time
+		 * measurement error is bigger than 15 seconds, then its considered valid
+		 */
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 15;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 10;
+		cio.invalidationWindowSecs = 2;
+		arcache.setTimeMeasurementError(14);
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertEquals(invKey.cacheInvalidationObject, cio);
+
+		arcache.setTimeMeasurementError(16);
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNull(invKey);
+
+		arcache.setTimeMeasurementError(5);
+
+		/*
+		 * in this case, the key was stored 5 sec ago, but taking in account of the time
+		 * measurament error, the poor condition is if it was really set 5-5 seconds
+		 * ago. And considering that the invalidation was 10 seconds ago, the key mas be
+		 * considered invalidated
+		 */
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 5;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 10;
+		cio.invalidationWindowSecs = 0;
+		arcache.setTimeMeasurementError(5);
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertEquals(invKey.cacheInvalidationObject, cio);
+
+		/*
+		 * Here the key was invalidated 11 secs ago, but this key was set 5 secs ago
+		 * minus the error are 10 secs ago. In this case the key is valid
+		 */
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 5;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 11;
+		cio.invalidationWindowSecs = 0;
+		arcache.setTimeMeasurementError(5);
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNull(invKey);
+
+		/*
+		 * Here the key is into the middle of invalidation window, but with a random of
+		 * 0. then it is invalid
+		 */
+		arcache.setTimeMeasurementError(0);
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 5;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 0;
+		cio.invalidationWindowSecs = 10;
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNotNull(invKey);
+
+		/*
+		 * Here the key is into the middle of invalidation window, but with a random of
+		 * 1. then it is valid
+		 */
+		arcache.setTimeMeasurementError(0);
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 5;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 0;
+		cio.invalidationWindowSecs = 10;
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNull(invKey);
+
+		/*
+		 * Here the key is into the middle of invalidation window, but with a random of
+		 * 1. then it is valid. But with a last invalidation hard newer this must be
+		 * invalid hard
+		 */
+		arcache.setTimeMeasurementError(0);
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 5;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 0;
+		cio.invalidationWindowSecs = 10;
+		cio.lastHardInvalidationTimestamp = (currentTimeMillis / 1000) - 0;
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertEquals(invKey.hardInvalidation, true);
+
+		/*
+		 * Here the key is into the middle of invalidation window, but with a random of
+		 * 1. then it is valid. But with a last invalidation soft newer this must be
+		 * invalid soft
+		 */
+		arcache.setTimeMeasurementError(0);
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 5;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 0;
+		cio.invalidationWindowSecs = 10;
+		cio.lastHardInvalidationTimestamp = 0;
+		cio.lastSoftInvalidationTimestamp = (currentTimeMillis / 1000) - 0;
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertEquals(invKey.hardInvalidation, false);
+
 	}
 
 	@SuppressWarnings("serial")
