@@ -63,6 +63,13 @@ public class ArcacheJedisClient implements ArcacheBackendClient {
 	}
 
 	protected String convertObjectToRedisString(final Object vobj) {
+		if (vobj == null) {
+			return null;
+		}
+		if (vobj instanceof String) {
+			return "'" + (String) vobj;
+		}
+
 		try {
 			CachedData cd = serializingTranscoder.encode(vobj);
 			byte q[] = cd.getData();
@@ -80,6 +87,13 @@ public class ArcacheJedisClient implements ArcacheBackendClient {
 	}
 
 	protected Object convertRedisStringToObject(final String redisString) {
+		if (redisString == null) {
+			return null;
+		}
+		if (redisString.startsWith("'")) {
+			return redisString.substring(1);
+		}
+
 		try {
 			byte barr[] = Base64.decodeBase64(redisString);
 			ByteBuffer bb = ByteBuffer.wrap(barr);

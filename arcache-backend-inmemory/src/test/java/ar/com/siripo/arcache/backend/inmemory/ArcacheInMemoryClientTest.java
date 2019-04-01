@@ -8,7 +8,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.HashSet;
 import java.util.concurrent.Future;
@@ -57,59 +56,29 @@ public class ArcacheInMemoryClientTest {
 	}
 
 	@Test
-	public void testSerialization() throws Exception {
-		HashSet<String> hs = new HashSet<String>();
-		hs.add("SomeString");
-		hs.add("SecondString");
+	public void testHitAndMiss() throws Exception {
+		// Hit Scenario
+		Future<Boolean> setFuture = client.asyncSet("HIT", 10, "hello");
+		assertTrue(setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue());
 
-		byte data[] = client.serialize(hs);
-		Object retrievedValue = client.deserialize(data);
+		Future<Object> getFuture = client.asyncGet("HIT");
+		Object retrievedValue = getFuture.get(50, TimeUnit.MILLISECONDS);
+		assertEquals(retrievedValue, "hello");
 
-		assertNotNull(retrievedValue);
-
-		assertThat(retrievedValue, instanceOf(hs.getClass()));
-
-		assertEquals(retrievedValue, hs);
-
-		assertNotSame(retrievedValue, hs);
+		// Miss Scenario
+		getFuture = client.asyncGet("MISS");
+		retrievedValue = getFuture.get(50, TimeUnit.MILLISECONDS);
+		assertNull(retrievedValue);
 	}
 
 	@Test
-	public void testDeserializeBorderCases() {
-		// Null input
-		assertNull(client.deserialize(null));
+	public void testNullValue() throws Exception {
+		Future<Boolean> setFuture = client.asyncSet("NULL", 10, null);
+		assertTrue(setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue());
 
-		// Io Exception
-		assertNull(client.deserialize(new byte[0]));
-
-		// A valid but inexistent class
-		byte data[] = new byte[] { -84, -19, 0, 5, 115, 114, 0, 94, 97, 114, 46, 99, 111, 109, 46, 115, 105, 114, 105,
-				112, 111, 46, 97, 114, 99, 97, 99, 104, 101, 46, 98, 97, 99, 107, 101, 110, 100, 46, 116, 101, 115, 116,
-				46, 65, 114, 99, 97, 99, 104, 101, 73, 110, 77, 101, 109, 111, 114, 121, 84, 101, 115, 116, 66, 97, 99,
-				107, 101, 110, 100, 84, 101, 115, 116, 36, 83, 116, 114, 97, 110, 103, 101, 67, 108, 97, 115, 115, 70,
-				111, 114, 83, 101, 114, 105, 97, 108, 105, 122, 97, 116, 105, 111, 110, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0,
-				120, 112 };
-		assertNull(client.deserialize(data));
-
-	}
-
-	@Test
-	public void testSerializeBorderCases() {
-		try {
-			client.serialize(null);
-			fail("Expected NullPointerException");
-		} catch (NullPointerException e) {
-		}
-
-		final class NonSerializableClass {
-		}
-
-		try {
-			client.serialize(new NonSerializableClass());
-			fail("Expected IllegalArgumentException");
-		} catch (IllegalArgumentException e) {
-		}
-
+		Future<Object> getFuture = client.asyncGet("NULL");
+		Object retrievedValue = getFuture.get(50, TimeUnit.MILLISECONDS);
+		assertNull(retrievedValue);
 	}
 
 	@Test

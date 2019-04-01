@@ -21,7 +21,6 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	protected boolean cancelled = false;
 	protected boolean done = false;
 	protected CacheGetResult valueToReturn;
-	protected ExecutionException exceptionToThrow;
 
 	protected Future<Object> mainFutureGet;
 	protected HashMap<String, Future<Object>> invalidationKeysFutureGets;
@@ -93,9 +92,6 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			throw new CancellationException();
 		}
 		if (done) {
-			if (exceptionToThrow != null) {
-				throw exceptionToThrow;
-			}
 			return valueToReturn;
 		}
 
@@ -164,7 +160,9 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 
 			return true;
 
-		} else if ((age > cachedObject.minTTLSecs) && (cachedObject.minTTLSecs < cachedObject.maxTTLSecs)) {
+		} else if (cachedObject.minTTLSecs >= cachedObject.maxTTLSecs) {
+			return false;
+		} else if (age > cachedObject.minTTLSecs) {
 			double ageInZone = age - cachedObject.minTTLSecs;
 			double invalidationZoneWidth = cachedObject.maxTTLSecs - cachedObject.minTTLSecs;
 			double expirationProbability = ageInZone / invalidationZoneWidth;
@@ -172,7 +170,6 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			if (expirationProbability > random.nextDouble()) {
 				return true;
 			}
-
 		}
 
 		return false;
@@ -200,8 +197,8 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 
 		HashMap<String, CacheInvalidationObject> invMap = new HashMap<String, CacheInvalidationObject>();
 
-		// Try to retrieve the InvalidationObjects, with the big constraint of time
-		while (invMap.size() < invalidationKeysFutureGets.size()) {
+		// For every InvalidationKey load the invalidationObject
+		for (final String invkey : cachedObject.invalidationKeys) {
 
 			// if it is Cancelled, exits
 			if (cancelled) {
@@ -212,15 +209,6 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			long remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
 			if (remainingTime <= 0) {
 				throw new TimeoutException();
-			}
-
-			// Find the first not retrieved
-			String invkey = null;
-			for (final String itkey : invalidationKeysFutureGets.keySet()) {
-				if (!invMap.containsKey(itkey)) {
-					invkey = itkey;
-					break;
-				}
 			}
 
 			// Load the key
@@ -252,12 +240,12 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	}
 
 	protected InvalidatedKey isCachedObjectInvalidated(final ExpirableCacheObject cachedObject,
-			HashMap<String, CacheInvalidationObject> invalidationMap, final long currentTimeMillis) {
+			final HashMap<String, CacheInvalidationObject> invalidationMap, final long currentTimeMillis) {
 		if (invalidationMap == null) {
 			return null;
 		}
 
-		// If the key was set more recently than timeMeasurementError assume it valid
+		// If the key was set more recently than timeMeasurementError assume its valid
 		if ((currentTimeMillis / 1000) - config.getTimeMeasurementError() < cachedObject.timestamp) {
 			return null;
 		}
@@ -293,7 +281,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 
 			}
 
-			// If its older than previous hard invalidation. Its soft invalidated
+			// If its older than previous soft invalidation. Its soft invalidated
 			if (effectiveStoreTimestamp <= invObj.lastSoftInvalidationTimestamp) {
 				return new InvalidatedKey(invObj, invkey, false);
 			}

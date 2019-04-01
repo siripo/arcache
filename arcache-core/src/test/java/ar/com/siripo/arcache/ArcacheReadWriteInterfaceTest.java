@@ -122,8 +122,21 @@ public class ArcacheReadWriteInterfaceTest {
 				return cr;
 			}
 		};
-
 		assertNull(clii.get("key", 22));
+
+		// Test the case of null or a unhandled type results in IllegalStateException
+		ArcacheClient cli = new ArcacheClient(backendClient) {
+			@Override
+			public CacheGetResult getCacheObject(final String key, final long timeoutMillis) {
+				return null;
+			}
+		};
+
+		try {
+			cli.get("key", 22);
+			fail();
+		} catch (IllegalStateException e) {
+		}
 
 	}
 
@@ -411,4 +424,5 @@ public class ArcacheReadWriteInterfaceTest {
 			assertEquals(this.key, key);
 		}
 	}
+
 }

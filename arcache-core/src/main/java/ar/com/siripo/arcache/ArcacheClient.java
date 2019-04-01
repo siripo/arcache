@@ -29,17 +29,17 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	public ArcacheClient() {
 		randomGenerator = new Random();
 	}
-	
+
 	protected ArcacheClient(ArcacheBackendClient backendClient) {
 		this();
 		setBackendClient(backendClient);
 	}
-	
+
 	@Override
 	public void setBackendClient(ArcacheBackendClient backendClient) {
-		this.backendClient=backendClient;
+		this.backendClient = backendClient;
 	}
-	
+
 	@Override
 	public ArcacheBackendClient getBackendClient() {
 		return backendClient;
@@ -154,19 +154,20 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	@Override
 	public Object get(final String key, final long timeoutMillis) throws TimeoutException, Exception {
 		final CacheGetResult cacheGetResult = getCacheObject(key, timeoutMillis);
-		switch (cacheGetResult.type) {
-		case HIT:
-			return cacheGetResult.value;
-		case ERROR:
-		case TIMEOUT:
-			throw cacheGetResult.errorCause;
-		case MISS:
-		case EXPIRED:
-		case INVALIDATED:
-			return null;
-		default:
-			throw new IllegalStateException("Unhandled cacheResultType: " + cacheGetResult.type);
+		if (cacheGetResult != null) {
+			switch (cacheGetResult.type) {
+			case HIT:
+				return cacheGetResult.value;
+			case ERROR:
+			case TIMEOUT:
+				throw cacheGetResult.errorCause;
+			case MISS:
+			case EXPIRED:
+			case INVALIDATED:
+				return null;
+			}
 		}
+		throw new IllegalStateException("Unhandled cacheResultType");
 	}
 
 	@Override
