@@ -1,6 +1,7 @@
 package ar.com.siripo.arcache;
 
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.math.ProbabilityFunction;
 
 public interface ArcacheConfigurationGetInterface {
 
@@ -19,6 +20,10 @@ public interface ArcacheConfigurationGetInterface {
 	public long getDefaultExpirationTime();
 
 	public long getDefaultStoredObjectRemovalTime();
-	
+
 	public ArcacheBackendClient getBackendClient();
+
+	public ProbabilityFunction getExpirationProbabilityFunction();
+
+	public ProbabilityFunction getInvalidationProbabilityFunction();
 }

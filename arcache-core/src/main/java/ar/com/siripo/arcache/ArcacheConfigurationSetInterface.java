@@ -1,6 +1,7 @@
 package ar.com.siripo.arcache;
 
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.math.ProbabilityFunction;
 
 public interface ArcacheConfigurationSetInterface {
 
@@ -65,9 +66,22 @@ public interface ArcacheConfigurationSetInterface {
 	 * @param removeTimeSecs ...
 	 */
 	public void setDefaultStoredObjectRemovalTime(long removeTimeSecs);
-	
-	
-	
+
 	public void setBackendClient(ArcacheBackendClient backendClient);
+
+	/**
+	 * Sets the function to be used to compute the probability of a key has expired
+	 * 
+	 * @param expirationProbabilityFunction
+	 */
+	public void setExpirationProbabilityFunction(ProbabilityFunction expirationProbabilityFunction);
+
+	/**
+	 * Sets the function to be used to compute the probability of a key has
+	 * invalidated
+	 * 
+	 * @param invalidationProbabilityFunction
+	 */
+	public void setInvalidationProbabilityFunction(ProbabilityFunction invalidationProbabilityFunction);
 
 }

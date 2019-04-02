@@ -8,6 +8,8 @@ import java.util.concurrent.TimeoutException;
 
 import ar.com.siripo.arcache.CacheGetResult.Type;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.math.AdjustedExponentialProbabilityFunction;
+import ar.com.siripo.arcache.math.ProbabilityFunction;
 import ar.com.siripo.arcache.util.DummyFuture;
 
 public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder {
@@ -21,6 +23,8 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	protected String invalidationKeyPrefix = "InvKey";
 	protected long defaultExpirationTimeSecs = 3600;
 	protected long defaultStoredObjectRemovalTimeSecs = 86400;
+	protected ProbabilityFunction expirationProbabilityFunction;
+	protected ProbabilityFunction invalidationProbabilityFunction;
 
 	protected ArcacheBackendClient backendClient;
 
@@ -28,6 +32,8 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 
 	public ArcacheClient() {
 		randomGenerator = new Random();
+		expirationProbabilityFunction = new AdjustedExponentialProbabilityFunction(0.5, 11);
+		invalidationProbabilityFunction = new AdjustedExponentialProbabilityFunction(0, 11);
 	}
 
 	protected ArcacheClient(ArcacheBackendClient backendClient) {
@@ -146,6 +152,22 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 		return defaultStoredObjectRemovalTimeSecs;
 	}
 
+	public void setExpirationProbabilityFunction(final ProbabilityFunction expirationProbabilityFunction) {
+		this.expirationProbabilityFunction = expirationProbabilityFunction;
+	}
+
+	public ProbabilityFunction getExpirationProbabilityFunction() {
+		return this.expirationProbabilityFunction;
+	}
+
+	public void setInvalidationProbabilityFunction(final ProbabilityFunction invalidationProbabilityFunction) {
+		this.invalidationProbabilityFunction = invalidationProbabilityFunction;
+	}
+
+	public ProbabilityFunction getInvalidationProbabilityFunction() {
+		return this.invalidationProbabilityFunction;
+	}
+
 	@Override
 	public Object get(final String key) throws TimeoutException, Exception {
 		return get(key, defaultOperationTimeoutMillis);
@@ -252,8 +274,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 			expObj.timestamp = System.currentTimeMillis() / 1000;
 			expObj.value = value;
 			expObj.invalidationKeys = invalidationKeys;
-			expObj.maxTTLSecs = defaultExpirationTimeSecs;
-			expObj.minTTLSecs = defaultExpirationTimeSecs / 2;
+			expObj.expirationTTLSecs = defaultExpirationTimeSecs;
 			String backendKey = createBackendKey(key);
 			return backendClient.asyncSet(backendKey, (int) defaultStoredObjectRemovalTimeSecs, expObj);
 

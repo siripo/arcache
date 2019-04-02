@@ -17,6 +17,9 @@ public class ObjectSerializer {
 	/**
 	 * Get the bytes representing the given serialized object. Original Source:
 	 * net.spy.memcached.transcoders.BaseSerializingTranscoder
+	 * 
+	 * @param o The serializable object to be serialized
+	 * @return The serialized object as byte array
 	 */
 	public byte[] serializeToByteArray(final Object o) {
 		if (o == null) {
@@ -58,6 +61,9 @@ public class ObjectSerializer {
 	/**
 	 * Get the object represented by the given serialized bytes. Original Source:
 	 * net.spy.memcached.transcoders.BaseSerializingTranscoder
+	 * 
+	 * @param in the serialized object to be deserialized
+	 * @return the object deserialized
 	 */
 	public Object deserialize(final byte[] in) {
 		Object rv = null;

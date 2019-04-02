@@ -155,24 +155,26 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	}
 
 	protected boolean isCachedObjectExpired(final ExpirableCacheObject cachedObject, final long currentTimeMillis) {
-		long age = (currentTimeMillis / 1000) - cachedObject.timestamp;
-		if (age >= cachedObject.maxTTLSecs) {
+		/*
+		 * The calculations are done in milliseconds so that it performs better the
+		 * probability function
+		 */
+		double agems = currentTimeMillis - cachedObject.timestamp * 1000;
+		double expms = cachedObject.expirationTTLSecs * 1000;
 
-			return true;
-
-		} else if (cachedObject.minTTLSecs >= cachedObject.maxTTLSecs) {
+		double age_normalized = 1;
+		if (expms > 0) {
+			age_normalized = agems / expms;
+		}
+		double expirationProbability = config.getExpirationProbabilityFunction().getProbability(age_normalized);
+		if (expirationProbability <= 0) {
 			return false;
-		} else if (age > cachedObject.minTTLSecs) {
-			double ageInZone = age - cachedObject.minTTLSecs;
-			double invalidationZoneWidth = cachedObject.maxTTLSecs - cachedObject.minTTLSecs;
-			double expirationProbability = ageInZone / invalidationZoneWidth;
-
-			if (expirationProbability > random.nextDouble()) {
-				return true;
-			}
+		}
+		if (expirationProbability >= 1) {
+			return true;
 		}
 
-		return false;
+		return (expirationProbability > random.nextDouble());
 	}
 
 	protected HashMap<String, CacheInvalidationObject> loadInvalidationKeys(final ExpirableCacheObject cachedObject,
@@ -273,9 +275,10 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 				}
 				double invalidTime = invObj.invalidationTimestamp - effectiveStoreTimestamp;
 				double normalizedTimeInsideWindow = invalidTime / invObj.invalidationWindowSecs;
+				double invalidationProbability = config.getInvalidationProbabilityFunction()
+						.getProbability(normalizedTimeInsideWindow);
 
-				// Apply linear probability
-				if (normalizedTimeInsideWindow > random.nextDouble()) {
+				if ((invalidationProbability >= 1) || (invalidationProbability > random.nextDouble())) {
 					return new InvalidatedKey(invObj, invkey, invObj.isHardInvalidation);
 				}
 

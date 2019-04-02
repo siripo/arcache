@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
+import ar.com.siripo.arcache.math.LinearProbabilityFunction;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ArcacheClientTest {
@@ -108,7 +109,7 @@ public class ArcacheClientTest {
 
 		// Alter the timeout
 		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
-		k.timestamp = k.timestamp - k.maxTTLSecs - 1;
+		k.timestamp = k.timestamp - k.expirationTTLSecs - 1;
 		backendClient.set(key, 10, k);
 
 		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
@@ -118,8 +119,11 @@ public class ArcacheClientTest {
 	}
 
 	@Test
-	public void testProbabilisticExpiration() throws Exception {
-		String key = "testProbabilisticExpiration";
+	public void testProbabilisticExpirationLinear() throws Exception {
+		arcache.setExpirationProbabilityFunction(new LinearProbabilityFunction(0.5));
+		arcache.setInvalidationProbabilityFunction(new LinearProbabilityFunction(0));
+
+		String key = "testProbabilisticExpirationLinear";
 		CacheGetResult cacheGetResult;
 
 		arcache.set(key, "val");
@@ -127,7 +131,7 @@ public class ArcacheClientTest {
 		// Alter the timeout, in 20% off time
 		// The expected behavior is have a 20% of expiration probability
 		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
-		k.timestamp = k.timestamp - k.minTTLSecs - ((k.maxTTLSecs - k.minTTLSecs) * 2 / 10);
+		k.timestamp = k.timestamp - (k.expirationTTLSecs / 2) - ((k.expirationTTLSecs / 2) * 2 / 10);
 		backendClient.set(key, 10, k);
 
 		// Expired
@@ -158,6 +162,47 @@ public class ArcacheClientTest {
 	}
 
 	@Test
+	public void testProbabilisticExpirationDefaultExponential11() throws Exception {
+
+		String key = "testProbabilisticExpiration";
+		CacheGetResult cacheGetResult;
+
+		arcache.set(key, "val");
+
+		// 90% of expiration zone
+		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
+		k.expirationTTLSecs = 100;
+		k.timestamp = k.timestamp - (k.expirationTTLSecs * 19 / 20);
+		backendClient.set(key, 10, k);
+
+		// Expired
+		arcache.randomGenerator = new StaticDoubleRandom(0);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.EXPIRED, cacheGetResult.type);
+
+		// Near but Expired
+		arcache.randomGenerator = new StaticDoubleRandom(0.2);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.EXPIRED, cacheGetResult.type);
+
+		// Near OK
+		arcache.randomGenerator = new StaticDoubleRandom(0.5);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.HIT, cacheGetResult.type);
+
+		// OK
+		arcache.randomGenerator = new StaticDoubleRandom(0.7);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.HIT, cacheGetResult.type);
+
+		// OK
+		arcache.randomGenerator = new StaticDoubleRandom(1);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.HIT, cacheGetResult.type);
+
+	}
+
+	@Test
 	public void testInvalidationKeysStoredInResult() throws Exception {
 		String key = "testInvalidationKeysStored";
 		String val = "value";
@@ -182,7 +227,7 @@ public class ArcacheClientTest {
 
 		// Update main key timestamp
 		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
-		k.timestamp = k.timestamp - k.minTTLSecs + 1;
+		k.timestamp = k.timestamp - (k.expirationTTLSecs / 2) + 1;
 		backendClient.set(key, 10, k);
 
 		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
@@ -209,7 +254,7 @@ public class ArcacheClientTest {
 
 		// Update main key timestamp
 		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
-		k.timestamp = k.timestamp - k.minTTLSecs + 1;
+		k.timestamp = k.timestamp - (k.expirationTTLSecs / 2) + 1;
 		backendClient.set(key, 10, k);
 
 		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
@@ -234,7 +279,7 @@ public class ArcacheClientTest {
 
 		// Update main key timestamp to a Expired value
 		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
-		k.timestamp = k.timestamp - k.maxTTLSecs - 10;
+		k.timestamp = k.timestamp - k.expirationTTLSecs - 10;
 		backendClient.set(key, 10, k);
 
 		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
@@ -309,8 +354,7 @@ public class ArcacheClientTest {
 		// Update main key timestamp
 		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
 		k.timestamp = k.timestamp - 100;
-		k.minTTLSecs = 500;
-		k.maxTTLSecs = 600;
+		k.expirationTTLSecs = 600;
 		backendClient.set(key, 10, k);
 
 		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
@@ -330,7 +374,10 @@ public class ArcacheClientTest {
 	}
 
 	@Test
-	public void testInvalidationWindow() throws Exception {
+	public void testInvalidationWindowLinear() throws Exception {
+
+		arcache.setExpirationProbabilityFunction(new LinearProbabilityFunction(0.5));
+		arcache.setInvalidationProbabilityFunction(new LinearProbabilityFunction(0));
 
 		String key = "testInvalidation";
 		String val = "value";
@@ -341,8 +388,7 @@ public class ArcacheClientTest {
 		// Update main key timestamp
 		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
 		k.timestamp = k.timestamp - 100;
-		k.minTTLSecs = 500;
-		k.maxTTLSecs = 600;
+		k.expirationTTLSecs = 600;
 		backendClient.set(key, 10, k);
 
 		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
@@ -378,6 +424,58 @@ public class ArcacheClientTest {
 		arcache.randomGenerator = new StaticDoubleRandom(1);
 		cacheGetResult = arcache.getCacheObject(key);
 		assertEquals(cacheGetResult.type, CacheGetResult.Type.MISS);
+
+	}
+
+	@Test
+	public void testInvalidationWindowDefaultExponential11() throws Exception {
+
+		String key = "testInvalidation";
+		String val = "value";
+		String[] invKeys = new String[] { "invkey1", "invkey2" };
+
+		arcache.set(key, val, invKeys);
+
+		// Update main key timestamp
+		ExpirableCacheObject k = (ExpirableCacheObject) backendClient.get(key);
+		k.timestamp = k.timestamp - 90;
+		k.expirationTTLSecs = 1000;
+		backendClient.set(key, 10, k);
+
+		CacheGetResult cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(cacheGetResult.type, CacheGetResult.Type.HIT);
+
+		// window 100 sec, age 90 sec, (90% inside invalidation window)
+		arcache.invalidateKey(invKeys[0], false, 100);
+		arcache.timeMeasurementErrorSecs = 0;
+
+		// Invalidated
+		arcache.randomGenerator = new StaticDoubleRandom(0);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.INVALIDATED, cacheGetResult.type);
+
+		// Invalidated
+		arcache.randomGenerator = new StaticDoubleRandom(0.2);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.INVALIDATED, cacheGetResult.type);
+
+		// HIT
+		arcache.randomGenerator = new StaticDoubleRandom(0.7);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.HIT, cacheGetResult.type);
+
+		// HIT
+		arcache.randomGenerator = new StaticDoubleRandom(1);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.HIT, cacheGetResult.type);
+
+		// Full invalidated hard
+		arcache.invalidateKey(invKeys[0], true, 50);
+		arcache.timeMeasurementErrorSecs = 0;
+
+		arcache.randomGenerator = new StaticDoubleRandom(1);
+		cacheGetResult = arcache.getCacheObject(key);
+		assertEquals(CacheGetResult.Type.MISS, cacheGetResult.type);
 
 	}
 

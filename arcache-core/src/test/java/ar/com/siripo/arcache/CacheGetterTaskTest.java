@@ -20,6 +20,7 @@ import org.junit.Test;
 import ar.com.siripo.arcache.CacheGetterTask.InvalidatedKey;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
+import ar.com.siripo.arcache.math.LinearProbabilityFunction;
 import ar.com.siripo.arcache.util.DummyFuture;
 
 public class CacheGetterTaskTest {
@@ -35,6 +36,8 @@ public class CacheGetterTaskTest {
 		backendClient = new ArcacheInMemoryClient();
 		arcache = new ArcacheClient(backendClient);
 		random = new Random();
+		arcache.setExpirationProbabilityFunction(new LinearProbabilityFunction(0.5));
+		arcache.setInvalidationProbabilityFunction(new LinearProbabilityFunction(0));
 	}
 
 	@Test
@@ -300,8 +303,7 @@ public class CacheGetterTaskTest {
 	public void testIsCachedObjectExpired_flows() throws Exception {
 		ExpirableCacheObject cachedObject = new ExpirableCacheObject();
 		cachedObject.timestamp = 0;
-		cachedObject.minTTLSecs = 5;
-		cachedObject.maxTTLSecs = 10;
+		cachedObject.expirationTTLSecs = 10;
 
 		CacheGetterTask cgt;
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(1));
@@ -311,30 +313,25 @@ public class CacheGetterTaskTest {
 
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0));
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5000), false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5999), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5001), true);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5999), true);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000), true);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6001), true);
 
-		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0.5));
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000), false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000), true);
+		// Test millisecond precision
+		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0.25));
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6250), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6251), true);
 
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0.5));
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000), false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000), true);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 7490), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 7510), true);
 
 		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(1));
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000), false);
+		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9999), false);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 10000), true);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 11000), true);
-
-		cachedObject.timestamp = 0;
-		cachedObject.minTTLSecs = 5;
-		cachedObject.maxTTLSecs = 3;
-		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0.5));
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 2000), false);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6000), true);
-		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000), true);
 	}
 
 	@Test
@@ -582,6 +579,37 @@ public class CacheGetterTaskTest {
 		assertNull(invKey);
 
 		/*
+		 * Here the key is into the 25% of invalidation window, so in a linear
+		 * probability it has 0.25 probability of invalidation. From a random between 0
+		 * and 0.25 is expected to be invalidated. From 0.25 to 1 is expected valid
+		 */
+		arcache.setTimeMeasurementError(0);
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 5;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 0;
+		cio.invalidationWindowSecs = 20;
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNotNull(invKey);
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.2));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNotNull(invKey);
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.249));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNotNull(invKey);
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.25));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNull(invKey);
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.50));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNull(invKey);
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.75));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNull(invKey);
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNull(invKey);
+
+		/*
 		 * Here the key is into the middle of invalidation window, but with a random of
 		 * 0. then it is invalid
 		 */
@@ -633,6 +661,34 @@ public class CacheGetterTaskTest {
 		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(1));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertEquals(invKey.hardInvalidation, false);
+
+		/*
+		 * Here the key is into the middle of invalidation window, but with a random of
+		 * 0.49. then it is invalid
+		 */
+		arcache.setTimeMeasurementError(0);
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 5;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 0;
+		cio.invalidationWindowSecs = 10;
+		cio.lastHardInvalidationTimestamp = 0;
+		cio.lastSoftInvalidationTimestamp = 0;
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.49));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNotNull(invKey);
+
+		/*
+		 * Here the key is into the middle of invalidation window, but with a random of
+		 * 0.51. then it is valid
+		 */
+		arcache.setTimeMeasurementError(0);
+		cachedObject.timestamp = (currentTimeMillis / 1000) - 5;
+		cio.invalidationTimestamp = (currentTimeMillis / 1000) - 0;
+		cio.invalidationWindowSecs = 10;
+		cio.lastHardInvalidationTimestamp = 0;
+		cio.lastSoftInvalidationTimestamp = 0;
+		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.51));
+		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
+		assertNull(invKey);
 
 	}
 
