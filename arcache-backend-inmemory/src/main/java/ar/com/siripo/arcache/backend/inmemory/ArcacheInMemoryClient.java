@@ -1,30 +1,37 @@
 package ar.com.siripo.arcache.backend.inmemory;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+
+import org.apache.commons.collections4.map.LRUMap;
 
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 import ar.com.siripo.arcache.util.DummyFuture;
 import ar.com.siripo.arcache.util.ObjectSerializer;
 
 /**
- * In memory Backend, util ONLY for testing. Because does not have eviction and
- * memory control
+ * In memory Backend
  * 
  * @author Mariano Santamarina
  *
  */
 public class ArcacheInMemoryClient implements ArcacheBackendClient {
 
-	protected ConcurrentHashMap<String, MemoryObject> storage;
+	protected LRUMap<String, MemoryObject> storage;
 	protected ObjectSerializer objectSerializer;
 
+	protected int lruMaxSize = 1000;
+
 	public ArcacheInMemoryClient() {
+		this(1000);
+	}
+
+	public ArcacheInMemoryClient(int maxSize) {
+		this.lruMaxSize = maxSize;
 		initialize();
 	}
 
 	private void initialize() {
-		storage = new ConcurrentHashMap<String, MemoryObject>();
+		storage = new LRUMap<String, MemoryObject>(lruMaxSize);
 		objectSerializer = new ObjectSerializer();
 	}
 
@@ -39,7 +46,12 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 	}
 
 	public Object get(String key) {
-		MemoryObject inMemoryObject = storage.get(key);
+		MemoryObject inMemoryObject;
+
+		synchronized (storage) {
+			inMemoryObject = storage.get(key);
+		}
+
 		Object obj = null;
 		if (inMemoryObject != null) {
 			if (inMemoryObject.expirationTime > System.currentTimeMillis()) {
@@ -54,13 +66,18 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 		MemoryObject inMemoryObject = new MemoryObject();
 		inMemoryObject.expirationTime = System.currentTimeMillis() + (ttlSeconds * 1000);
 		inMemoryObject.data = objectSerializer.serializeToByteArray(value);
-		storage.put(key, inMemoryObject);
+
+		synchronized (storage) {
+			storage.put(key, inMemoryObject);
+		}
 
 		return true;
 	}
 
 	public void clear() {
-		storage.clear();
+		synchronized (storage) {
+			storage.clear();
+		}
 	}
 
 }

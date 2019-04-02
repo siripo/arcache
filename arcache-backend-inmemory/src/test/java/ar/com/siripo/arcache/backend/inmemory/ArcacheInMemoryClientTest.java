@@ -101,4 +101,38 @@ public class ArcacheInMemoryClientTest {
 		mobj.expirationTime = mobj.expirationTime - 8000;
 		assertNull(client.get(key));
 	}
+
+	@Test
+	public void testLRUEviction() throws Exception {
+		client = new ArcacheInMemoryClient(3);
+		client.set("key1", 10, "1");
+		client.set("key2", 10, "2");
+		client.set("key3", 10, "3");
+
+		assertEquals("1", client.get("key1"));
+		assertEquals("2", client.get("key2"));
+		assertEquals("3", client.get("key3"));
+
+		client.set("key4", 10, "4");
+
+		// Test eviction of Key1
+		assertNull(client.get("key1"));
+		assertEquals("2", client.get("key2"));
+		assertEquals("3", client.get("key3"));
+		assertEquals("4", client.get("key4"));
+
+		// Test eviction in LRU manner
+		assertEquals("4", client.get("key4"));
+		assertEquals("3", client.get("key3"));
+		assertEquals("2", client.get("key2"));
+
+		client.set("key5", 10, "5");
+
+		assertNull(client.get("key1"));
+		assertEquals("2", client.get("key2"));
+		assertEquals("3", client.get("key3"));
+		assertNull(client.get("key4"));
+		assertEquals("5", client.get("key5"));
+
+	}
 }

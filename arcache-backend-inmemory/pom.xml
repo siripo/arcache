@@ -13,6 +13,11 @@
 	<packaging>jar</packaging>
 	<name>Advanced Resilient Cache Backend InMemory</name>
 
+	<description>
+		This module stores the keys in local memory.
+		It uses an LRUMap to keep memory limits
+    </description>
+
 	<dependencies>
 		<dependency>
 			<groupId>ar.com.siripo</groupId>
@@ -20,6 +25,11 @@
 			<version>${project.version}</version>
 			<scope>compile</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-collections4</artifactId>
+			<version>4.1</version>
+		</dependency>
 	</dependencies>
-	
+
 </project>
