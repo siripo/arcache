@@ -1,6 +1,7 @@
 package ar.com.siripo.arcache.spring;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.Future;
 
@@ -9,6 +10,7 @@ import org.junit.Test;
 
 import ar.com.siripo.arcache.ArcacheClient;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.math.ProbabilityFunction;
 
 public class ArcacheClientFactoryBeanTest {
 
@@ -113,6 +115,28 @@ public class ArcacheClientFactoryBeanTest {
 
 		mbc.asyncSet(null, 1, 0);
 		mbc.asyncGet(null);
+	}
+
+	@Test
+	public void testSetExpirationProbabilityFunction() throws Exception {
+		ProbabilityFunction myfunc = new ProbabilityFunction() {
+			public double getProbability(double x) {
+				return 0;
+			}
+		};
+		factoryBean.setExpirationProbabilityFunction(myfunc);
+		assertEquals(myfunc, factoryBean.getObject().getExpirationProbabilityFunction());
+	}
+
+	@Test
+	public void testSetInvalidationProbabilityFunction() throws Exception {
+		ProbabilityFunction myfunc = new ProbabilityFunction() {
+			public double getProbability(double x) {
+				return 0;
+			}
+		};
+		factoryBean.setInvalidationProbabilityFunction(myfunc);
+		assertEquals(myfunc, factoryBean.getObject().getInvalidationProbabilityFunction());
 	}
 
 }

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.InitializingBean;
 import ar.com.siripo.arcache.ArcacheClient;
 import ar.com.siripo.arcache.ArcacheConfigurationSetInterface;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.math.ProbabilityFunction;
 
 public class ArcacheClientFactoryBean
 		implements FactoryBean<ArcacheClient>, InitializingBean, DisposableBean, ArcacheConfigurationSetInterface {
@@ -85,6 +86,17 @@ public class ArcacheClientFactoryBean
 	@Override
 	public void setBackendClient(ArcacheBackendClient backendClient) {
 		client.setBackendClient(backendClient);
+	}
+
+	@Override
+	public void setExpirationProbabilityFunction(ProbabilityFunction expirationProbabilityFunction) {
+		client.setExpirationProbabilityFunction(expirationProbabilityFunction);
+
+	}
+
+	@Override
+	public void setInvalidationProbabilityFunction(ProbabilityFunction invalidationProbabilityFunction) {
+		client.setInvalidationProbabilityFunction(invalidationProbabilityFunction);
 	}
 
 }
