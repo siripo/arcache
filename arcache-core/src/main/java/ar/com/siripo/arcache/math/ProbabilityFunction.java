@@ -17,6 +17,9 @@ public interface ProbabilityFunction {
 	 * return probability = 1. For values between [0,1] you must return values
 	 * between [0,1] according to the curve implemented.
 	 * 
+	 * This must be a monotonically increasing function. The reason is that a
+	 * growing form allows good behavior with high and low throughput.
+	 * 
 	 * Keep in mind that x represents how old the key is for which the probability
 	 * that it is expired is being requested. We will indicate x = 0 when the age of
 	 * the key is zero. X = 1 will be indicated when the ttl of the key has been
