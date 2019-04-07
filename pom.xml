@@ -39,6 +39,7 @@
 		<module>arcache-backend-inmemory</module>
 		<module>arcache-backend-memcached</module>
 		<module>arcache-backend-jedis</module>
+		<module>arcache-backend-speedup</module>
 	</modules>
 
 	<scm>

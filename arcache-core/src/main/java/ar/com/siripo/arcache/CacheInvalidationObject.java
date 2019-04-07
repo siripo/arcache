@@ -76,7 +76,7 @@ import java.io.Serializable;
  * @author Mariano Santamarina
  *
  */
-public class CacheInvalidationObject implements Serializable {
+public class CacheInvalidationObject implements CacheInvalidationObjectType, Serializable {
 
 	private static final long serialVersionUID = 1L;
 
