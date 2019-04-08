@@ -1,55 +1,58 @@
 package ar.com.siripo.arcache.backend.speedup;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.util.HashSet;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import org.junit.After;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
+
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ArcacheSpeedupClientTest {
 
 	ArcacheSpeedupClient client;
+	ArcacheInMemoryClient backendClient;
 
 	@Before
 	public void setUp() throws Exception {
-		client = new ArcacheSpeedupClient();
-	}
 
-	@After
-	public void tearDown() throws Exception {
+		backendClient = new ArcacheInMemoryClient();
+
+		client = new ArcacheSpeedupClient();
+		client.setBackendClient(backendClient);
+		client.setInvalidationKeysCacheSize(100);
+		client.setInvalidationKeysExpirationMillis(1000);
+		client.initialize();
 	}
 
 	@Test
-	public void testGetSet() throws Exception {
-		HashSet<String> hs = new HashSet<String>();
-		hs.add("OTHER");
+	public void testInitializationStrategys() throws Exception {
 
-		Future<Boolean> setFuture = client.asyncSet("TESTCLIENT", 10, hs);
+		// Test normal behavior
+		client = new ArcacheSpeedupClient();
+		client.setBackendClient(backendClient);
+		client.setInvalidationKeysCacheSize(100);
+		client.setInvalidationKeysExpirationMillis(1000);
+		client.initialize();
 
-		assertTrue(setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue());
+		// Test fail on double initialization
+		try {
+			client.initialize();
+			fail();
+		} catch (IllegalStateException ise) {
+		}
 
-		Future<Object> getFuture = client.asyncGet("TESTCLIENT");
+		// Test no Backend Defined
+		client = new ArcacheSpeedupClient();
+		client.setInvalidationKeysCacheSize(100);
+		client.setInvalidationKeysExpirationMillis(1000);
+		try {
+			client.initialize();
+			fail();
+		} catch (IllegalArgumentException iae) {
+		}
 
-		Object retrievedValue = getFuture.get(50, TimeUnit.MILLISECONDS);
-
-		assertNotNull(retrievedValue);
-
-		assertThat(retrievedValue, instanceOf(hs.getClass()));
-
-		assertEquals(retrievedValue, hs);
-
-		assertNotSame(retrievedValue, hs);
 	}
 }

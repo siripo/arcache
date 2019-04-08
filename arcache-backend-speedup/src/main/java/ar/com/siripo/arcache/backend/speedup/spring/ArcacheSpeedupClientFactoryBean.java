@@ -4,39 +4,94 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 
+import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 import ar.com.siripo.arcache.backend.speedup.ArcacheSpeedupClient;
+import ar.com.siripo.arcache.backend.speedup.ArcacheSpeedupConfigurationSetInterface;
+import ar.com.siripo.arcache.math.ProbabilityFunction;
 
-public class ArcacheSpeedupClientFactoryBean
-		implements FactoryBean<ArcacheSpeedupClient>, InitializingBean, DisposableBean {
+public class ArcacheSpeedupClientFactoryBean implements FactoryBean<ArcacheSpeedupClient>, InitializingBean,
+		DisposableBean, ArcacheSpeedupConfigurationSetInterface {
+
+	private ArcacheSpeedupClient client;
+
+	public ArcacheSpeedupClientFactoryBean() {
+		client = new ArcacheSpeedupClient();
+	}
 
 	@Override
 	public void destroy() throws Exception {
-		// TODO Auto-generated method stub
-
+		client = null;
 	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		// TODO Auto-generated method stub
-
+		client.initialize();
 	}
 
 	@Override
 	public ArcacheSpeedupClient getObject() throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		return client;
 	}
 
 	@Override
 	public Class<?> getObjectType() {
-		// TODO Auto-generated method stub
-		return null;
+		return ArcacheSpeedupClient.class;
 	}
 
 	@Override
 	public boolean isSingleton() {
-		// TODO Auto-generated method stub
+		// FIXME resolver
 		return false;
+	}
+
+	@Override
+	public void setBackendClient(ArcacheBackendClient backendClient) {
+		client.setBackendClient(backendClient);
+	}
+
+	@Override
+	public void setInvalidationKeysCacheSize(int cacheSize) {
+		client.setInvalidationKeysCacheSize(cacheSize);
+	}
+
+	@Override
+	public void setObjectsCacheSize(int cacheSize) {
+		client.setObjectsCacheSize(cacheSize);
+	}
+
+	@Override
+	public void setMissesCacheSize(int cacheSize) {
+		client.setMissesCacheSize(cacheSize);
+	}
+
+	@Override
+	public void setInvalidationKeysExpirationMillis(long expirationMillis) {
+		client.setInvalidationKeysExpirationMillis(expirationMillis);
+	}
+
+	@Override
+	public void setObjectsExpirationMillis(long expirationMillis) {
+		client.setObjectsExpirationMillis(expirationMillis);
+	}
+
+	@Override
+	public void setMissesExpirationMillis(long expirationMillis) {
+		client.setMissesExpirationMillis(expirationMillis);
+	}
+
+	@Override
+	public void setProtectAgainstBackendFailures(boolean protect) {
+		client.setProtectAgainstBackendFailures(protect);
+	}
+
+	@Override
+	public void setSpeedupCacheTTLSeconds(int ttlSeconds) {
+		client.setSpeedupCacheTTLSeconds(ttlSeconds);
+	}
+
+	@Override
+	public void setExpirationProbabilityFunction(ProbabilityFunction probabilityFunction) {
+		client.setExpirationProbabilityFunction(probabilityFunction);
 	}
 
 }

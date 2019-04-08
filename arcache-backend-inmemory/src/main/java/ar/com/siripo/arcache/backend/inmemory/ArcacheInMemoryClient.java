@@ -74,6 +74,12 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 		return true;
 	}
 
+	public void remove(String key) {
+		synchronized (storage) {
+			storage.remove(key);
+		}
+	}
+
 	public void clear() {
 		synchronized (storage) {
 			storage.clear();
