@@ -2,9 +2,14 @@ package ar.com.siripo.arcache.backend.speedup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.util.Random;
+import java.util.concurrent.Future;
 
 import org.junit.Before;
 import org.junit.FixMethodOrder;
@@ -341,4 +346,314 @@ public class ArcacheSpeedupClientTest {
 		client.asyncSet(key, 1234, value).get();
 		assertEquals(value, backendClient.get(key));
 	}
+
+	/* Test the storing in one bucket and the removal from a previous one */
+	@Test
+	public void testStoreSpeedupCacheSwapFromCaches() {
+		String key = "thekey";
+		Object objvalue = "Hello";
+		Object invvalue = new CacheInvalidationObject();
+		client.clear();
+
+		// Store as object
+		client.storeSpeedupCache(key, objvalue);
+		assertNull(client.invalidationKeysCache.get(key));
+		assertNotNull(client.objectsCache.get(key));
+		assertNull(client.missesCache.get(key));
+
+		// Store as miss and expect remove from object
+		client.storeSpeedupCache(key, null);
+		assertNull(client.invalidationKeysCache.get(key));
+		assertNull(client.objectsCache.get(key));
+		assertNotNull(client.missesCache.get(key));
+
+		// Store as invalidationKey and expect remove from miss
+		client.storeSpeedupCache(key, invvalue);
+		assertNotNull(client.invalidationKeysCache.get(key));
+		assertNull(client.objectsCache.get(key));
+		assertNull(client.missesCache.get(key));
+
+		// Store as miss and expect remove from invalidationKey
+		client.storeSpeedupCache(key, null);
+		assertNull(client.invalidationKeysCache.get(key));
+		assertNull(client.objectsCache.get(key));
+		assertNotNull(client.missesCache.get(key));
+
+		// Store as inv key
+		client.storeSpeedupCache(key, invvalue);
+		assertNotNull(client.invalidationKeysCache.get(key));
+		assertNull(client.objectsCache.get(key));
+		assertNull(client.missesCache.get(key));
+
+		// Store as object and expect remove from invKey
+		client.storeSpeedupCache(key, objvalue);
+		assertNull(client.invalidationKeysCache.get(key));
+		assertNotNull(client.objectsCache.get(key));
+		assertNull(client.missesCache.get(key));
+
+		// Store as inv key and expect remove from object
+		client.storeSpeedupCache(key, invvalue);
+		assertNotNull(client.invalidationKeysCache.get(key));
+		assertNull(client.objectsCache.get(key));
+		assertNull(client.missesCache.get(key));
+
+	}
+
+	@Test
+	public void testStoreSpeedupCacheWithNoAllCaches() {
+
+		String key = "thekey";
+		Object objvalue = "Hello";
+		Object invvalue = new CacheInvalidationObject();
+		client.clear();
+
+		ArcacheInMemoryClient objectsCache = client.objectsCache;
+		ArcacheInMemoryClient invalidationKeysCache = client.invalidationKeysCache;
+		ArcacheInMemoryClient missesCache = client.missesCache;
+
+		client.invalidationKeysCache = null;
+		client.objectsCache = null;
+		client.missesCache = null;
+
+		client.storeSpeedupCache(key, invvalue);
+		client.storeSpeedupCache(key, objvalue);
+		client.storeSpeedupCache(key, null);
+
+		client.invalidationKeysCache = invalidationKeysCache;
+		client.storeSpeedupCache(key, invvalue);
+		assertNotNull(client.invalidationKeysCache.get(key));
+		client.storeSpeedupCache(key, objvalue);
+		assertNull(client.invalidationKeysCache.get(key));
+
+		client.invalidationKeysCache = null;
+		client.objectsCache = objectsCache;
+		client.storeSpeedupCache(key, objvalue);
+		assertNotNull(client.objectsCache.get(key));
+		client.storeSpeedupCache(key, invvalue);
+		assertNull(client.objectsCache.get(key));
+
+		client.objectsCache = null;
+		client.missesCache = missesCache;
+		client.storeSpeedupCache(key, null);
+		assertNotNull(client.missesCache.get(key));
+		client.storeSpeedupCache(key, invvalue);
+		assertNull(client.missesCache.get(key));
+	}
+
+	@Test
+	public void testAsyncGet() throws Exception {
+		// ----------------------------------------------------------------
+		// First the happiest path with cached value
+		Object value = new String("ABC");
+		String key = "thekey";
+
+		client.random = new StaticDoubleRandom(1);
+		client.asyncSet(key, 1234, value).get();
+		assertEquals(value, backendClient.get(key));
+		assertEquals(value, client.asyncGet(key).get());
+
+		// Alter the backend value to verify if its restored from speedup Cache
+		backendClient.set(key, 1234, "lala");
+		assertNotEquals(value, backendClient.get(key));
+		assertEquals(value, client.asyncGet(key).get());
+
+		// Test no speedup cache value
+		client.clear();
+		assertNotEquals(value, client.asyncGet(key).get());
+
+		// ----------------------------------------------------------------
+		// Test no speedup cache, next restore, after that must have cache value
+		client.clear();
+		backendClient.clear();
+		client.asyncSet(key, 1234, value).get();
+		client.clear();
+		assertNull(client.restoreObjectFromAnySpeedupCache(key));
+		// Now restore form backend
+		assertEquals(value, client.asyncGet(key).get());
+		assertNotNull(client.restoreObjectFromAnySpeedupCache(key));
+		// Now alter the backend, and the cached value must be there
+		backendClient.set(key, 1234, "lala");
+		assertNotEquals(value, backendClient.get(key));
+		assertEquals(value, client.asyncGet(key).get());
+		client.clear();
+		assertNotEquals(value, client.asyncGet(key).get());
+
+		// ----------------------------------------------------------------
+		// Test the miss behavior, Get a key that is miss in backend, check the miss,
+		// after that store the key in the backend. and speedup must be miss.
+		client.clear();
+		backendClient.clear();
+		assertNull(client.asyncGet(key).get());
+		backendClient.set(key, 1234, value);
+		// The miss cache must return miss
+		assertNull(client.asyncGet(key).get());
+		assertNotNull(client.missesCache.get(key));
+		client.clear();
+		// Now the value must be restored
+		assertEquals(value, client.asyncGet(key).get());
+		assertNotNull(client.objectsCache.get(key));
+
+		// ----------------------------------------------------------------
+		// Here test what happens with an expired speedup cache
+		client = new ArcacheSpeedupClient() {
+			@Override
+			protected RestoredSpeedupCacheObject restoreObjectFromAnySpeedupCache(String key) {
+				RestoredSpeedupCacheObject rsco = new RestoredSpeedupCacheObject();
+				rsco.expired = true;
+				rsco.speedupCacheObject = new SpeedupCacheObject();
+				rsco.speedupCacheObject.cachedObject = "ll";
+				return rsco;
+			}
+		};
+		client.setBackendClient(backendClient);
+		client.setObjectsCacheSize(1000);
+		client.setObjectsExpirationMillis(1000);
+		client.initialize();
+		client.random = new StaticDoubleRandom(1);
+
+		client.asyncSet(key, 1234, value).get();
+		assertEquals(value, backendClient.get(key));
+		assertEquals(value, client.asyncGet(key).get());
+
+		// ----------------------------------------------------------------
+		// Test exception restoring from speedup cache
+		client = new ArcacheSpeedupClient() {
+			@Override
+			protected RestoredSpeedupCacheObject restoreObjectFromAnySpeedupCache(String key) {
+				throw new IllegalStateException();
+			}
+		};
+		client.setBackendClient(backendClient);
+		client.setObjectsCacheSize(1000);
+		client.setObjectsExpirationMillis(1000);
+		client.initialize();
+		client.random = new StaticDoubleRandom(1);
+
+		client.asyncSet(key, 1234, value).get();
+		assertEquals(value, backendClient.get(key));
+		assertEquals(value, client.asyncGet(key).get());
+		backendClient.set(key, 1234, "lala");
+		assertNotEquals(value, client.asyncGet(key).get());
+
+		// ----------------------------------------------------------------
+		// Test exceptions in local cache
+		client = new ArcacheSpeedupClient() {
+			@Override
+			protected RestoredSpeedupCacheObject restoreObjectFromAnySpeedupCache(String key) {
+				throw new IllegalStateException();
+			}
+
+			@Override
+			protected FutureBackendGetWrapper createFutureBackendGetWrapper(Future<Object> backendFuture, String key) {
+				throw new IllegalStateException();
+			}
+		};
+		client.setBackendClient(backendClient);
+		client.setObjectsCacheSize(1000);
+		client.setObjectsExpirationMillis(1000);
+		client.initialize();
+
+		client.asyncSet(key, 1234, value).get();
+		assertEquals(value, backendClient.get(key));
+		assertEquals(value, client.asyncGet(key).get());
+
+	}
+
+	@Test
+	public void testRestoreObjectFromAnySpeedupCache() {
+		// The behavior is to restore in order from invkeys,objets, then miss
+		ArcacheSpeedupClient clientx = new ArcacheSpeedupClient() {
+			@Override
+			protected RestoredSpeedupCacheObject restoreObjectFromSpeedupCache(String key,
+					ArcacheInMemoryClient speedupCache, long timeoutMillis) {
+				if (key == "hit") {
+					RestoredSpeedupCacheObject rsco = new RestoredSpeedupCacheObject();
+					rsco.expired = false;
+					rsco.speedupCacheObject = new SpeedupCacheObject();
+					rsco.speedupCacheObject.cachedObject = speedupCache;
+					return rsco;
+				}
+				return null;
+
+			}
+		};
+		clientx.initialized = true;
+		clientx.invalidationKeysCache = client.invalidationKeysCache;
+		clientx.objectsCache = client.objectsCache;
+		clientx.missesCache = client.missesCache;
+
+		assertNull(clientx.restoreObjectFromAnySpeedupCache("miss"));
+		assertNotNull(clientx.restoreObjectFromAnySpeedupCache("hit"));
+		assertEquals(clientx.invalidationKeysCache,
+				clientx.restoreObjectFromAnySpeedupCache("hit").speedupCacheObject.cachedObject);
+
+		clientx.invalidationKeysCache = null;
+		assertEquals(clientx.objectsCache,
+				clientx.restoreObjectFromAnySpeedupCache("hit").speedupCacheObject.cachedObject);
+
+		clientx.objectsCache = null;
+		assertEquals(clientx.missesCache,
+				clientx.restoreObjectFromAnySpeedupCache("hit").speedupCacheObject.cachedObject);
+
+		clientx.missesCache = null;
+		assertNull(clientx.restoreObjectFromAnySpeedupCache("hit"));
+
+	}
+
+	@Test
+	public void testRestoreObjectFromSpeedupCache() {
+		String key = "a";
+		ArcacheInMemoryClient speedupCache = client.invalidationKeysCache;
+		String value = "thevalue";
+
+		assertNull(client.restoreObjectFromSpeedupCache(key, speedupCache, 1000));
+		speedupCache.set(key, 1000, "InvalidType");
+
+		// This is a rare case
+		try {
+			client.restoreObjectFromSpeedupCache(key, speedupCache, 1000);
+			fail();
+		} catch (ClassCastException ce) {
+
+		}
+
+		// store a valid type and check restore.
+		client.random = new StaticDoubleRandom(1);
+		SpeedupCacheObject sco = client.createSpeedupCacheObject(value);
+		speedupCache.set(key, 1000, sco);
+		RestoredSpeedupCacheObject rsco = client.restoreObjectFromSpeedupCache(key, speedupCache, 1000);
+		assertEquals(value, rsco.speedupCacheObject.cachedObject);
+		assertFalse(rsco.expired);
+
+		// Now store an expired value
+		sco.storeTimeMillis = System.currentTimeMillis() - 11000;
+		speedupCache.set(key, 99999, sco);
+		rsco = client.restoreObjectFromSpeedupCache(key, speedupCache, 10000);
+		assertEquals(value, rsco.speedupCacheObject.cachedObject);
+		assertTrue(rsco.expired);
+
+		// Now store a value in the middle of invalidation window
+		sco.storeTimeMillis = System.currentTimeMillis() - 5000;
+		speedupCache.set(key, 99999, sco);
+		client.random = new StaticDoubleRandom(1);
+		assertFalse(client.restoreObjectFromSpeedupCache(key, speedupCache, 10000).expired);
+		client.random = new StaticDoubleRandom(0);
+		assertTrue(client.restoreObjectFromSpeedupCache(key, speedupCache, 10000).expired);
+		client.random = new StaticDoubleRandom(0.5); // this value depends of the probability function
+		assertFalse(client.restoreObjectFromSpeedupCache(key, speedupCache, 10000).expired);
+	}
+
+	@SuppressWarnings("serial")
+	private static class StaticDoubleRandom extends Random {
+		double rv;
+
+		StaticDoubleRandom(double v) {
+			rv = v;
+		}
+
+		public double nextDouble() {
+			return (rv);
+		}
+	}
+
 }

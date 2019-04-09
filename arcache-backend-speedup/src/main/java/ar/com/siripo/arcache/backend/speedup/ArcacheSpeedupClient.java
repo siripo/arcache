@@ -1,10 +1,7 @@
 package ar.com.siripo.arcache.backend.speedup;
 
 import java.util.Random;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import ar.com.siripo.arcache.CacheInvalidationObjectType;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
@@ -199,15 +196,28 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 				if (invalidationKeysCache != null) {
 					invalidationKeysCache.set(key, speedupCacheTTLSeconds, createSpeedupCacheObject(value));
 				}
+				if (objectsCache != null) {
+					objectsCache.remove(key);
+				}
 			} else {
 				if (objectsCache != null) {
 					objectsCache.set(key, speedupCacheTTLSeconds, createSpeedupCacheObject(value));
+				}
+				if (invalidationKeysCache != null) {
+					invalidationKeysCache.remove(key);
 				}
 			}
 			if (missesCache != null) {
 				missesCache.remove(key);
 			}
 		}
+	}
+
+	protected SpeedupCacheObject createSpeedupCacheObject(Object value) {
+		SpeedupCacheObject sco = new SpeedupCacheObject();
+		sco.storeTimeMillis = System.currentTimeMillis();
+		sco.cachedObject = value;
+		return sco;
 	}
 
 	@Override
@@ -228,7 +238,7 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		Future<Object> backendFuture = backendClient.asyncGet(key);
 
 		try {
-			return new FutureBackendGetWrapper(backendFuture, key);
+			return createFutureBackendGetWrapper(backendFuture, key);
 		} catch (Exception e) {
 
 		}
@@ -236,11 +246,8 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		return backendFuture;
 	}
 
-	protected SpeedupCacheObject createSpeedupCacheObject(Object value) {
-		SpeedupCacheObject sco = new SpeedupCacheObject();
-		sco.storeTimeMillis = System.currentTimeMillis();
-		sco.cachedObject = value;
-		return sco;
+	protected FutureBackendGetWrapper createFutureBackendGetWrapper(Future<Object> backendFuture, String key) {
+		return new FutureBackendGetWrapper(this, backendFuture, key, protectAgainstBackendFailures);
 	}
 
 	protected RestoredSpeedupCacheObject restoreObjectFromAnySpeedupCache(String key) {
@@ -249,10 +256,10 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		if (invalidationKeysCache != null) {
 			rsco = restoreObjectFromSpeedupCache(key, invalidationKeysCache, invalidationKeysExpirationMillis);
 		}
-		if ((rsco != null) && (objectsCache != null)) {
+		if ((rsco == null) && (objectsCache != null)) {
 			rsco = restoreObjectFromSpeedupCache(key, objectsCache, objectsExpirationMillis);
 		}
-		if ((rsco != null) && (missesCache != null)) {
+		if ((rsco == null) && (missesCache != null)) {
 			rsco = restoreObjectFromSpeedupCache(key, missesCache, missesExpirationMillis);
 		}
 
@@ -278,100 +285,6 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		}
 
 		return rsco;
-	}
-
-	protected class FutureBackendGetWrapper implements Future<Object> {
-
-		protected Future<Object> backendFuture;
-		protected String key;
-
-		public FutureBackendGetWrapper(Future<Object> backendFuture, String key) {
-			this.backendFuture = backendFuture;
-			this.key = key;
-		}
-
-		@Override
-		public boolean cancel(boolean mayInterruptIfRunning) {
-			return backendFuture.cancel(mayInterruptIfRunning);
-		}
-
-		@Override
-		public boolean isCancelled() {
-			return backendFuture.isCancelled();
-		}
-
-		@Override
-		public boolean isDone() {
-			return backendFuture.isDone();
-		}
-
-		@Override
-		public Object get() throws InterruptedException, ExecutionException {
-			try {
-				return wrappGetResult(backendFuture.get());
-			} catch (InterruptedException ie) {
-				return wrappGetInterruptedException(ie);
-			} catch (ExecutionException ee) {
-				return wrappGetExecutionException(ee);
-			}
-		}
-
-		@Override
-		public Object get(long timeout, TimeUnit unit)
-				throws InterruptedException, ExecutionException, TimeoutException {
-			try {
-				return wrappGetResult(backendFuture.get(timeout, unit));
-			} catch (InterruptedException ie) {
-				return wrappGetInterruptedException(ie);
-			} catch (ExecutionException ee) {
-				return wrappGetExecutionException(ee);
-			} catch (TimeoutException te) {
-				return wrappGetTimeoutException(te);
-			}
-		}
-
-		protected Object wrappGetResult(Object getResult) {
-			try {
-				storeSpeedupCache(key, getResult);
-			} catch (Exception e) {
-			}
-			return getResult;
-		}
-
-		protected Object wrappGetInterruptedException(InterruptedException cause) throws InterruptedException {
-			try {
-				return doProtection();
-			} catch (Exception e) {
-			}
-			throw cause;
-		}
-
-		protected Object wrappGetExecutionException(ExecutionException cause) throws ExecutionException {
-			try {
-				return doProtection();
-			} catch (Exception e) {
-			}
-			throw cause;
-		}
-
-		protected Object wrappGetTimeoutException(TimeoutException cause) throws TimeoutException {
-			try {
-				return doProtection();
-			} catch (Exception e) {
-			}
-			throw cause;
-		}
-
-		protected Object doProtection() throws Exception {
-			if (protectAgainstBackendFailures) {
-				RestoredSpeedupCacheObject rsco = restoreObjectFromAnySpeedupCache(key);
-				if (rsco != null) {
-					return rsco.speedupCacheObject.cachedObject;
-				}
-			}
-			throw new Exception("No protection available");
-		}
-
 	}
 
 }
