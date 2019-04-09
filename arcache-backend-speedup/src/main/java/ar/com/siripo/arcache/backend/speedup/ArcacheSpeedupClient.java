@@ -153,6 +153,23 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		if (invalidationKeysCache != null) {
 			invalidationKeysCache.clear();
 		}
+		if (missesCache != null) {
+			missesCache.clear();
+		}
+	}
+
+	protected void validateSetCacheSize(int cachesize) {
+		// The value must be 0 to disable, >0 to specify the number of elements
+		if (cachesize < 0) {
+			throw new IllegalArgumentException("Invalid cache size");
+		}
+	}
+
+	protected void validateSetExpirationMillis(long expirationMillis) {
+		// The value must be greater than 0
+		if (expirationMillis <= 0) {
+			throw new IllegalArgumentException("Invalid expiration millis");
+		}
 	}
 
 	@Override
@@ -261,20 +278,6 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		}
 
 		return rsco;
-	}
-
-	protected void validateSetCacheSize(int cachesize) {
-		// The value must be 0 to disable, >0 to specify the number of elements
-		if (cachesize < 0) {
-			throw new IllegalArgumentException("Invalid cache size");
-		}
-	}
-
-	protected void validateSetExpirationMillis(long expirationMillis) {
-		// The value must be greater than 0
-		if (expirationMillis <= 0) {
-			throw new IllegalArgumentException("Invalid expiration millis");
-		}
 	}
 
 	protected class FutureBackendGetWrapper implements Future<Object> {
