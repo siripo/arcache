@@ -17,7 +17,8 @@ import ar.com.siripo.arcache.util.DummyFuture;
  * @author Mariano Santamarina
  *
  */
-public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedupConfigurationSetInterface {
+public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedupConfigurationSetInterface,
+		ArcacheSpeedupConfigurationGetInterface {
 
 	protected ArcacheBackendClient backendClient;
 
@@ -98,6 +99,56 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 	@Override
 	public void setExpirationProbabilityFunction(ProbabilityFunction probabilityFunction) {
 		this.expirationProbabilityFunction = probabilityFunction;
+	}
+
+	@Override
+	public ArcacheBackendClient getBackendClient() {
+		return backendClient;
+	}
+
+	@Override
+	public int getInvalidationKeysCacheSize() {
+		return invalidationKeysCacheSize;
+	}
+
+	@Override
+	public int getObjectsCacheSize() {
+		return objectsCacheSize;
+	}
+
+	@Override
+	public int getMissesCacheSize() {
+		return missesCacheSize;
+	}
+
+	@Override
+	public long getInvalidationKeysExpirationMillis() {
+		return invalidationKeysExpirationMillis;
+	}
+
+	@Override
+	public long getObjectsExpirationMillis() {
+		return objectsExpirationMillis;
+	}
+
+	@Override
+	public long getMissesExpirationMillis() {
+		return missesExpirationMillis;
+	}
+
+	@Override
+	public boolean getProtectAgainstBackendFailures() {
+		return protectAgainstBackendFailures;
+	}
+
+	@Override
+	public int getSpeedupCacheTTLSeconds() {
+		return speedupCacheTTLSeconds;
+	}
+
+	@Override
+	public ProbabilityFunction getExpirationProbabilityFunction() {
+		return expirationProbabilityFunction;
 	}
 
 	public void initialize() {

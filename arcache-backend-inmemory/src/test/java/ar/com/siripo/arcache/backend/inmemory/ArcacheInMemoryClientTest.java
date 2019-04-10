@@ -135,4 +135,15 @@ public class ArcacheInMemoryClientTest {
 		assertEquals("5", client.get("key5"));
 
 	}
+	
+	@Test
+	public void testRemove() throws Exception {
+		final String key = "k";
+		assertTrue(client.set(key, 10, "aa"));
+		assertTrue(client.set("k2", 10, "aa"));
+		assertNotNull(client.get(key));
+		client.remove(key);
+		assertNull(client.get(key));
+		assertNotNull(client.get("k2"));
+	}
 }

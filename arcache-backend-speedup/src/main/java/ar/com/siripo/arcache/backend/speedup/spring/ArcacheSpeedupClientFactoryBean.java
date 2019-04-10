@@ -12,7 +12,7 @@ import ar.com.siripo.arcache.math.ProbabilityFunction;
 public class ArcacheSpeedupClientFactoryBean implements FactoryBean<ArcacheSpeedupClient>, InitializingBean,
 		DisposableBean, ArcacheSpeedupConfigurationSetInterface {
 
-	private ArcacheSpeedupClient client;
+	protected ArcacheSpeedupClient client;
 
 	public ArcacheSpeedupClientFactoryBean() {
 		client = new ArcacheSpeedupClient();
@@ -40,8 +40,7 @@ public class ArcacheSpeedupClientFactoryBean implements FactoryBean<ArcacheSpeed
 
 	@Override
 	public boolean isSingleton() {
-		// FIXME resolver
-		return false;
+		return true;
 	}
 
 	@Override
