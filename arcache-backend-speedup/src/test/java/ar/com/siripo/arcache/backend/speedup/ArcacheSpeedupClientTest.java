@@ -643,6 +643,23 @@ public class ArcacheSpeedupClientTest {
 		assertFalse(client.restoreObjectFromSpeedupCache(key, speedupCache, 10000).expired);
 	}
 
+	@Test
+	public void createFutureBackendGetWrapper() {
+		String key = "key";
+		Future<Object> fut = client.backendClient.asyncGet(key);
+
+		client.protectAgainstBackendFailures = false;
+		FutureBackendGetWrapper fbgw = client.createFutureBackendGetWrapper(fut, key);
+		assertEquals(fut, fbgw.backendFuture);
+		assertEquals(client, fbgw.speedupClient);
+		assertEquals(false, fbgw.protectAgainstBackendFailures);
+		assertEquals(key, fbgw.key);
+
+		client.protectAgainstBackendFailures = true;
+		fbgw = client.createFutureBackendGetWrapper(fut, key);
+		assertEquals(true, fbgw.protectAgainstBackendFailures);
+	}
+
 	@SuppressWarnings("serial")
 	private static class StaticDoubleRandom extends Random {
 		double rv;

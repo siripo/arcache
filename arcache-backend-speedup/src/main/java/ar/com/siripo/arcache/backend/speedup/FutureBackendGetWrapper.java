@@ -12,7 +12,7 @@ class FutureBackendGetWrapper implements Future<Object> {
 	protected ArcacheSpeedupClient speedupClient;
 	protected boolean protectAgainstBackendFailures;
 
-	public FutureBackendGetWrapper(ArcacheSpeedupClient speedupClient, Future<Object> backendFuture, String key,
+	protected FutureBackendGetWrapper(ArcacheSpeedupClient speedupClient, Future<Object> backendFuture, String key,
 			boolean protectAgainstBackendFailures) {
 		this.backendFuture = backendFuture;
 		this.key = key;
