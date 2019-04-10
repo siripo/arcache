@@ -9,13 +9,12 @@
 		<artifactId>arcache-main-pom</artifactId>
 		<version>0.0.4</version>
 	</parent>
-	<artifactId>arcache-backend-inmemory</artifactId>
+	<artifactId>arcache-backend-speedup</artifactId>
 	<packaging>jar</packaging>
-	<name>Advanced Resilient Cache Backend InMemory</name>
+	<name>Advanced Resilient Cache Backend Speedup</name>
 
 	<description>
-		This module stores the keys in local memory.
-		It uses an LRUMap to keep memory limits
+		This module speedup the slow backends with a local fast cache
     </description>
 
 	<dependencies>
@@ -26,9 +25,20 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-collections4</artifactId>
-			<version>4.1</version>
+			<groupId>ar.com.siripo</groupId>
+			<artifactId>arcache-backend-inmemory</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>ar.com.siripo</groupId>
+			<artifactId>arcache-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-beans</artifactId>
+			<version>3.0.3.RELEASE</version>
+			<optional>true</optional>
 		</dependency>
 	</dependencies>
 
