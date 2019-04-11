@@ -15,7 +15,7 @@ public interface ArcacheInvalidationInterface {
 	 * Invalida una key, utilizando una invalidacion soft o hard segun se haya
 	 * configurado
 	 */
-	public void invalidateKey(String key, long invalidationWindowSecs) throws TimeoutException, Exception;
+	public void invalidateKey(String key, long invalidationWindowMillis) throws TimeoutException, Exception;
 
 	/**
 	 * Invalidates a key using the default invalidationWindow
@@ -28,9 +28,9 @@ public interface ArcacheInvalidationInterface {
 	 */
 	public void invalidateKey(String key, boolean hardInvalidation) throws TimeoutException, Exception;
 
-	public void invalidateKey(String key, boolean hardInvalidation, long invalidationWindowSecs)
+	public void invalidateKey(String key, boolean hardInvalidation, long invalidationWindowMillis)
 			throws TimeoutException, Exception;
 
-	public Future<Boolean> asyncInvalidateKey(String key, boolean hardInvalidation, long invalidationWindowSecs);
+	public Future<Boolean> asyncInvalidateKey(String key, boolean hardInvalidation, long invalidationWindowMillis);
 
 }

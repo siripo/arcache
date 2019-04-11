@@ -28,24 +28,24 @@ public class CacheGetResult {
 
 	protected String invalidatedKey; // If it is INVALIDATED here is set the key that invalidates
 
-	protected long storeTimestamp; // Timestamp in seconds where the value was stored
+	protected long storeTimestampMillis; // Timestamp in milliseconds where the value was stored
 
 	public boolean isHit() {
 		return type == Type.HIT;
 	}
-	
+
 	public boolean isMiss() {
 		return type == Type.MISS;
 	}
-	
+
 	public boolean isExpired() {
 		return type == Type.EXPIRED;
 	}
-	
+
 	public boolean isInvalidated() {
 		return type == Type.INVALIDATED;
 	}
-	
+
 	public boolean isHitOrExpired() {
 		return type == Type.HIT || type == Type.EXPIRED;
 	}
@@ -57,8 +57,6 @@ public class CacheGetResult {
 	public boolean isAnyTypeOfError() {
 		return type == Type.TIMEOUT || type == Type.ERROR;
 	}
-
-	
 
 	protected CacheGetResult(Type type) {
 		this.type = type;
@@ -89,8 +87,8 @@ public class CacheGetResult {
 		return invalidatedKey;
 	}
 
-	public long getStoreTimestamp() {
-		return storeTimestamp;
+	public long getStoreTimestampMillis() {
+		return storeTimestampMillis;
 	}
 
 	public static class Builder {
@@ -105,7 +103,7 @@ public class CacheGetResult {
 			build.errorCause = ref.errorCause;
 			build.invalidatedKey = ref.invalidatedKey;
 			build.invalidationKeys = ref.invalidationKeys;
-			build.storeTimestamp = ref.storeTimestamp;
+			build.storeTimestampMillis = ref.storeTimestampMillis;
 			build.value = ref.value;
 		}
 
@@ -134,8 +132,8 @@ public class CacheGetResult {
 			return this;
 		}
 
-		public Builder withStoreTimestamp(long storeTimestamp) {
-			build.storeTimestamp = storeTimestamp;
+		public Builder withStoreTimestampMillis(long storeTimestampMillis) {
+			build.storeTimestampMillis = storeTimestampMillis;
 			return this;
 		}
 

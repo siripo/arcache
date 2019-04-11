@@ -50,20 +50,20 @@ public class ArcacheClientFactoryBeanTest {
 
 	@Test
 	public void testSetDefaultOperationTimeout() throws Exception {
-		factoryBean.setDefaultOperationTimeout(20);
-		assertEquals(factoryBean.getObject().getDefaultOperationTimeout(), 20);
+		factoryBean.setDefaultOperationTimeoutMillis(20);
+		assertEquals(factoryBean.getObject().getDefaultOperationTimeoutMillis(), 20);
 	}
 
 	@Test
 	public void testSetTimeMeasurementError() throws Exception {
-		factoryBean.setTimeMeasurementError(21);
-		assertEquals(factoryBean.getObject().getTimeMeasurementError(), 21);
+		factoryBean.setTimeMeasurementErrorMillis(21);
+		assertEquals(factoryBean.getObject().getTimeMeasurementErrorMillis(), 21);
 	}
 
 	@Test
 	public void testSetDefaultInvalidationWindow() throws Exception {
-		factoryBean.setDefaultInvalidationWindow(22);
-		assertEquals(factoryBean.getObject().getDefaultInvalidationWindow(), 22);
+		factoryBean.setDefaultInvalidationWindowMillis(22);
+		assertEquals(factoryBean.getObject().getDefaultInvalidationWindowMillis(), 22);
 	}
 
 	@Test
@@ -88,20 +88,20 @@ public class ArcacheClientFactoryBeanTest {
 
 	@Test
 	public void testSetDefaultExpirationTime() throws Exception {
-		factoryBean.setDefaultExpirationTime(51);
-		assertEquals(factoryBean.getObject().getDefaultExpirationTime(), 51);
+		factoryBean.setDefaultExpirationTimeMillis(51);
+		assertEquals(factoryBean.getObject().getDefaultExpirationTimeMillis(), 51);
 	}
 
 	@Test
 	public void testSetDefaultStoredObjectRemovalTime() throws Exception {
-		factoryBean.setDefaultStoredObjectRemovalTime(52);
-		assertEquals(factoryBean.getObject().getDefaultStoredObjectRemovalTime(), 52);
+		factoryBean.setDefaultStoredObjectRemovalTimeMillis(52);
+		assertEquals(factoryBean.getObject().getDefaultStoredObjectRemovalTimeMillis(), 52);
 	}
 
 	@Test
 	public void testSetBackendClient() throws Exception {
 		ArcacheBackendClient mbc = new ArcacheBackendClient() {
-			public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
+			public Future<Boolean> asyncSet(String key, long ttlMillis, Object value) {
 				return null;
 			}
 

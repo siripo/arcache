@@ -34,11 +34,11 @@ public interface ArcacheSpeedupConfigurationSetInterface {
 	public void setProtectAgainstBackendFailures(boolean protect);
 
 	/**
-	 * Set the speedup cache ttl in seconds, this value must be restricted by the
-	 * cache size, the ttl is allowed to make a hard expiration if its needed. By
-	 * default this value is a year
+	 * Set the speedup cache ttl in milli seconds, this value must be restricted by
+	 * the cache size, the ttl is allowed to make a hard expiration if its needed.
+	 * By default this value is a year
 	 */
-	public void setSpeedupCacheTTLSeconds(int ttlSeconds);
+	public void setSpeedupCacheTTLMillis(long ttlMillis);
 
 	/** Set the probability function to be used in expiration evaluation */
 	public void setExpirationProbabilityFunction(ProbabilityFunction probabilityFunction);

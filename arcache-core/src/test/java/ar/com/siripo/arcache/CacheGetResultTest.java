@@ -83,14 +83,14 @@ public class CacheGetResultTest {
 		Object value = new HashSet<String>();
 		CacheGetResult cgr = new CacheGetResult.Builder(Type.HIT).withType(Type.EXPIRED).withErrorCause(errorCause)
 				.withInvalidatedKey(invalidatedKey).withInvalidationKeys(invalidationKeys)
-				.withStoreTimestamp(storeTimestamp).withValue(value).build();
+				.withStoreTimestampMillis(storeTimestamp).withValue(value).build();
 
 		assertNotEquals(cgr.getType(), Type.HIT);
 		assertEquals(cgr.getType(), Type.EXPIRED);
 		assertEquals(cgr.getErrorCause(), errorCause);
 		assertEquals(cgr.getInvalidatedKey(), invalidatedKey);
 		assertArrayEquals(cgr.getInvalidationKeys(), invalidationKeys);
-		assertEquals(cgr.getStoreTimestamp(), storeTimestamp);
+		assertEquals(cgr.getStoreTimestampMillis(), storeTimestamp);
 		assertEquals(cgr.getValue(), value);
 
 		cgr = new CacheGetResult.Builder(cgr).withInvalidatedKey("invk2").withType(Type.HIT).build();
@@ -101,7 +101,7 @@ public class CacheGetResultTest {
 		assertNotEquals(cgr.getInvalidatedKey(), invalidatedKey);
 		assertEquals(cgr.getInvalidatedKey(), "invk2");
 		assertArrayEquals(cgr.getInvalidationKeys(), invalidationKeys);
-		assertEquals(cgr.getStoreTimestamp(), storeTimestamp);
+		assertEquals(cgr.getStoreTimestampMillis(), storeTimestamp);
 		assertEquals(cgr.getValue(), value);
 	}
 

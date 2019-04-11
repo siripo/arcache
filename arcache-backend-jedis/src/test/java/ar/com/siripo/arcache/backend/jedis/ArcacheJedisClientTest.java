@@ -63,7 +63,7 @@ public class ArcacheJedisClientTest {
 		HashSet<String> hs = new HashSet<String>();
 		hs.add("OTHER");
 
-		Future<Boolean> setFuture = client.asyncSet("TESTCLIENT", 10, hs);
+		Future<Boolean> setFuture = client.asyncSet("TESTCLIENT", 10000, hs);
 
 		if (!setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue()) {
 			fail("Failed to store");
@@ -100,7 +100,7 @@ public class ArcacheJedisClientTest {
 		};
 		ArcacheJedisClient clientx = new ArcacheJedisClient(jedis);
 
-		Future<Boolean> setFuture = clientx.asyncSet("TESTCLIENT", 10, "qweqwe");
+		Future<Boolean> setFuture = clientx.asyncSet("TESTCLIENT", 10000, "qweqwe");
 
 		assertFalse("Expect failed to store", setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue());
 	}
@@ -112,7 +112,7 @@ public class ArcacheJedisClientTest {
 		ShardedJedis shardedJedis = new ShardedJedis(jedisShards);
 		ArcacheJedisClient clientx = new ArcacheJedisClient(shardedJedis);
 
-		Future<Boolean> setFuture = clientx.asyncSet("KEYSH", 10, "hello");
+		Future<Boolean> setFuture = clientx.asyncSet("KEYSH", 10000, "hello");
 
 		if (!setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue()) {
 			fail("Failed to store");

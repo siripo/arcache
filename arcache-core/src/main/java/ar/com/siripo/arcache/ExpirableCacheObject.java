@@ -12,16 +12,18 @@ import java.io.Serializable;
  */
 public class ExpirableCacheObject implements Serializable {
 
-	private static final long serialVersionUID = 20180401001L;
+	private static final long serialVersionUID = 20180410001L;
 
 	/** The application domain value to be remembered and restored */
 	public Object value;
 
-	/** Unix timestamp (in seconds) of the moment where the value was stored */
-	public long timestamp;
+	/** Unix timestamp (in milliseconds) of the moment where the value was stored */
+	public long timestampMillis;
 
-	/** Expiration TTL in seconds, after that the key must be considered expired */
-	public long expirationTTLSecs;
+	/**
+	 * Expiration TTL in milliseconds, after that the key must be considered expired
+	 */
+	public long expirationTTLMillis;
 
 	/**
 	 * list of sets to which this key belongs, which allow the invalidation of

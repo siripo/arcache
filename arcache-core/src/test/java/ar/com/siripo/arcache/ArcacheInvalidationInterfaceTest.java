@@ -34,13 +34,13 @@ public class ArcacheInvalidationInterfaceTest {
 	@Test
 	public void testInvalidateKeyString() throws Exception {
 		config.setDefaultHardInvalidation(true);
-		config.setDefaultInvalidationWindow(777);
+		config.setDefaultInvalidationWindowMillis(777);
 		interceptor.resetInterceptor();
 		invalidationInterface.invalidateKey("juan");
 		interceptor.assertIntercepted("juan", true, 777);
 
 		config.setDefaultHardInvalidation(false);
-		config.setDefaultInvalidationWindow(888);
+		config.setDefaultInvalidationWindowMillis(888);
 		interceptor.resetInterceptor();
 		invalidationInterface.invalidateKey("pili");
 		interceptor.assertIntercepted("pili", false, 888);
@@ -62,12 +62,12 @@ public class ArcacheInvalidationInterfaceTest {
 
 	@Test
 	public void testInvalidateKeyStringBoolean() throws Exception {
-		config.setDefaultInvalidationWindow(999);
+		config.setDefaultInvalidationWindowMillis(999);
 		interceptor.resetInterceptor();
 		invalidationInterface.invalidateKey("juan", true);
 		interceptor.assertIntercepted("juan", true, 999);
 
-		config.setDefaultInvalidationWindow(111);
+		config.setDefaultInvalidationWindowMillis(111);
 		interceptor.resetInterceptor();
 		invalidationInterface.invalidateKey("pili", false);
 		interceptor.assertIntercepted("pili", false, 111);

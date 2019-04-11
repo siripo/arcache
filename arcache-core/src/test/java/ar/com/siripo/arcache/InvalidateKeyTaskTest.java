@@ -107,7 +107,7 @@ public class InvalidateKeyTaskTest {
 		ArcacheBackendClient bkclient = new ArcacheBackendClient() {
 
 			@Override
-			public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
+			public Future<Boolean> asyncSet(String key, long ttlMillis, Object value) {
 				return new DummyFuture<Boolean>(null) {
 					@Override
 					public boolean cancel(boolean mayInterruptIfRunning) {
@@ -290,7 +290,7 @@ public class InvalidateKeyTaskTest {
 		// test call in normal flavor
 		bkclient = new ArcacheBackendClient() {
 			@Override
-			public Future<Boolean> asyncSet(String key, int ttlSeconds, final Object value) {
+			public Future<Boolean> asyncSet(String key, long ttlMillis, final Object value) {
 				return new DummyFuture<Boolean>(null) {
 					@Override
 					public Boolean get(long timeout, TimeUnit unit)
@@ -331,7 +331,7 @@ public class InvalidateKeyTaskTest {
 		// test timeout inside get future
 		bkclient = new ArcacheBackendClient() {
 			@Override
-			public Future<Boolean> asyncSet(String key, int ttlSeconds, final Object value) {
+			public Future<Boolean> asyncSet(String key, long ttlMillis, final Object value) {
 				return new DummyFuture<Boolean>(null) {
 					@Override
 					public Boolean get(long timeout, TimeUnit unit)
@@ -363,7 +363,7 @@ public class InvalidateKeyTaskTest {
 		// test InterruptedException inside get future
 		bkclient = new ArcacheBackendClient() {
 			@Override
-			public Future<Boolean> asyncSet(String key, int ttlSeconds, final Object value) {
+			public Future<Boolean> asyncSet(String key, long ttlMillis, final Object value) {
 				return new DummyFuture<Boolean>(null) {
 					@Override
 					public Boolean get(long timeout, TimeUnit unit)

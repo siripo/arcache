@@ -20,11 +20,11 @@ public class ArcacheConfigurationInterfaceTest {
 
 	@Test
 	public void testSetDefaultOperationTimeout() {
-		config.setDefaultOperationTimeout(1);
-		assertEquals(config.getDefaultOperationTimeout(), 1);
+		config.setDefaultOperationTimeoutMillis(1);
+		assertEquals(config.getDefaultOperationTimeoutMillis(), 1);
 
 		try {
-			config.setDefaultOperationTimeout(0);
+			config.setDefaultOperationTimeoutMillis(0);
 			fail();
 		} catch (IllegalArgumentException e) {
 		}
@@ -32,11 +32,11 @@ public class ArcacheConfigurationInterfaceTest {
 
 	@Test
 	public void testSetTimeMeasurementError() {
-		config.setTimeMeasurementError(2);
-		assertEquals(config.getTimeMeasurementError(), 2);
+		config.setTimeMeasurementErrorMillis(2);
+		assertEquals(config.getTimeMeasurementErrorMillis(), 2);
 
 		try {
-			config.setTimeMeasurementError(-1);
+			config.setTimeMeasurementErrorMillis(-1);
 			fail();
 		} catch (IllegalArgumentException e) {
 		}
@@ -44,11 +44,11 @@ public class ArcacheConfigurationInterfaceTest {
 
 	@Test
 	public void testSetDefaultInvalidationWindow() {
-		config.setDefaultInvalidationWindow(3);
-		assertEquals(config.getDefaultInvalidationWindow(), 3);
+		config.setDefaultInvalidationWindowMillis(3);
+		assertEquals(config.getDefaultInvalidationWindowMillis(), 3);
 
 		try {
-			config.setDefaultInvalidationWindow(-1);
+			config.setDefaultInvalidationWindowMillis(-1);
 			fail();
 		} catch (IllegalArgumentException e) {
 		}
@@ -92,11 +92,11 @@ public class ArcacheConfigurationInterfaceTest {
 
 	@Test
 	public void testSetDefaultExpirationTime() {
-		config.setDefaultExpirationTime(4);
-		assertEquals(config.getDefaultExpirationTime(), 4);
+		config.setDefaultExpirationTimeMillis(4);
+		assertEquals(config.getDefaultExpirationTimeMillis(), 4);
 
 		try {
-			config.setDefaultExpirationTime(0);
+			config.setDefaultExpirationTimeMillis(0);
 			fail();
 		} catch (IllegalArgumentException e) {
 		}
@@ -104,11 +104,11 @@ public class ArcacheConfigurationInterfaceTest {
 
 	@Test
 	public void testSetDefaultStoredObjectRemovalTime() {
-		config.setDefaultStoredObjectRemovalTime(5);
-		assertEquals(config.getDefaultStoredObjectRemovalTime(), 5);
+		config.setDefaultStoredObjectRemovalTimeMillis(5);
+		assertEquals(config.getDefaultStoredObjectRemovalTimeMillis(), 5);
 
 		try {
-			config.setDefaultStoredObjectRemovalTime(0);
+			config.setDefaultStoredObjectRemovalTimeMillis(0);
 			fail();
 		} catch (IllegalArgumentException e) {
 		}
