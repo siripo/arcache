@@ -7,6 +7,7 @@ import org.springframework.beans.factory.InitializingBean;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 import ar.com.siripo.arcache.backend.speedup.ArcacheSpeedupClient;
 import ar.com.siripo.arcache.backend.speedup.ArcacheSpeedupConfigurationSetInterface;
+import ar.com.siripo.arcache.backend.speedup.ArcacheSpeedupTracker;
 import ar.com.siripo.arcache.math.ProbabilityFunction;
 
 public class ArcacheSpeedupClientFactoryBean implements FactoryBean<ArcacheSpeedupClient>, InitializingBean,
@@ -91,6 +92,11 @@ public class ArcacheSpeedupClientFactoryBean implements FactoryBean<ArcacheSpeed
 	@Override
 	public void setExpirationProbabilityFunction(ProbabilityFunction probabilityFunction) {
 		client.setExpirationProbabilityFunction(probabilityFunction);
+	}
+
+	@Override
+	public void setTracker(ArcacheSpeedupTracker tracker) {
+		client.setTracker(tracker);
 	}
 
 }

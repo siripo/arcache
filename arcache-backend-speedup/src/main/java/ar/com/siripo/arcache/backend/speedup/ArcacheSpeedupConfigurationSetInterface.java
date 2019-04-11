@@ -43,4 +43,7 @@ public interface ArcacheSpeedupConfigurationSetInterface {
 	/** Set the probability function to be used in expiration evaluation */
 	public void setExpirationProbabilityFunction(ProbabilityFunction probabilityFunction);
 
+	/** Set a tracker to keep control of speedup performance and malfunctions */
+	public void setTracker(ArcacheSpeedupTracker tracker);
+
 }

@@ -5,19 +5,23 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
+
 class FutureBackendGetWrapper implements Future<Object> {
 
 	protected Future<Object> backendFuture;
 	protected String key;
 	protected ArcacheSpeedupClient speedupClient;
 	protected boolean protectAgainstBackendFailures;
+	protected ArcacheSpeedupTracker tracker;
 
 	protected FutureBackendGetWrapper(ArcacheSpeedupClient speedupClient, Future<Object> backendFuture, String key,
-			boolean protectAgainstBackendFailures) {
+			boolean protectAgainstBackendFailures, ArcacheSpeedupTracker tracker) {
 		this.backendFuture = backendFuture;
 		this.key = key;
 		this.speedupClient = speedupClient;
 		this.protectAgainstBackendFailures = protectAgainstBackendFailures;
+		this.tracker = tracker;
 	}
 
 	@Override
@@ -61,15 +65,24 @@ class FutureBackendGetWrapper implements Future<Object> {
 
 	protected Object wrappGetResult(Object getResult) {
 		try {
-			speedupClient.storeSpeedupCache(key, getResult);
+			ArcacheInMemoryClient dst = speedupClient.storeSpeedupCache(key, getResult);
+			// If here we are storing the get result, is because the previous ger was miss
+			if (dst == speedupClient.invalidationKeysCache) {
+				tracker.trackInvalidationKeysCacheMiss(key);
+			} else if (dst == speedupClient.objectsCache) {
+				tracker.trackObjectsCacheMiss(key);
+			} else if (dst == speedupClient.missesCache) {
+				tracker.trackMissesCacheMiss(key);
+			}
 		} catch (Exception e) {
+			tracker.trackException(key, e);
 		}
 		return getResult;
 	}
 
 	protected Object wrappGetInterruptedException(InterruptedException cause) throws InterruptedException {
 		try {
-			return doProtection();
+			return doProtection(cause);
 		} catch (Exception e) {
 		}
 		throw cause;
@@ -77,7 +90,7 @@ class FutureBackendGetWrapper implements Future<Object> {
 
 	protected Object wrappGetExecutionException(ExecutionException cause) throws ExecutionException {
 		try {
-			return doProtection();
+			return doProtection(cause);
 		} catch (Exception e) {
 		}
 		throw cause;
@@ -85,16 +98,17 @@ class FutureBackendGetWrapper implements Future<Object> {
 
 	protected Object wrappGetTimeoutException(TimeoutException cause) throws TimeoutException {
 		try {
-			return doProtection();
+			return doProtection(cause);
 		} catch (Exception e) {
 		}
 		throw cause;
 	}
 
-	protected Object doProtection() throws Exception {
+	protected Object doProtection(Exception cause) throws Exception {
 		if (protectAgainstBackendFailures) {
 			RestoredSpeedupCacheObject rsco = speedupClient.restoreObjectFromAnySpeedupCache(key);
 			if (rsco != null) {
+				tracker.trackBackendGetFailureRecovered(key, cause);
 				return rsco.speedupCacheObject.cachedObject;
 			}
 		}

@@ -34,6 +34,8 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 	protected int speedupCacheTTLSeconds = 365 * 24 * 3600;
 	protected ProbabilityFunction expirationProbabilityFunction;
 
+	protected ArcacheSpeedupTracker tracker = null;
+
 	protected ArcacheInMemoryClient invalidationKeysCache = null;
 	protected ArcacheInMemoryClient objectsCache = null;
 	protected ArcacheInMemoryClient missesCache = null;
@@ -102,6 +104,11 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 	}
 
 	@Override
+	public void setTracker(ArcacheSpeedupTracker tracker) {
+		this.tracker = tracker;
+	}
+
+	@Override
 	public ArcacheBackendClient getBackendClient() {
 		return backendClient;
 	}
@@ -151,6 +158,11 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		return expirationProbabilityFunction;
 	}
 
+	@Override
+	public ArcacheSpeedupTracker getTracker() {
+		return tracker;
+	}
+
 	public void initialize() {
 		if (initialized) {
 			throw new IllegalStateException("Already Initialized");
@@ -191,6 +203,10 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		}
 		random = new Random();
 
+		if (tracker == null) {
+			tracker = new ArcacheSpeedupBasicTracker();
+		}
+
 		initialized = true;
 	}
 
@@ -227,11 +243,13 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		} catch (Exception e) {
 			// This catch is here because the speedup is a wish functionality, if it does
 			// not work must do not break the inner backend access
+			tracker.trackException(key, e);
 		}
 		return backendClient.asyncSet(key, ttlSeconds, value);
 	}
 
-	protected void storeSpeedupCache(String key, Object value) {
+	protected ArcacheInMemoryClient storeSpeedupCache(String key, Object value) {
+		ArcacheInMemoryClient destination = null;
 		if (value == null) {
 			if (invalidationKeysCache != null) {
 				invalidationKeysCache.remove(key);
@@ -240,19 +258,19 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 				objectsCache.remove(key);
 			}
 			if (missesCache != null) {
-				missesCache.set(key, speedupCacheTTLSeconds, createSpeedupCacheObject(value));
+				destination = missesCache;
 			}
 		} else {
 			if (value instanceof CacheInvalidationObjectType) {
 				if (invalidationKeysCache != null) {
-					invalidationKeysCache.set(key, speedupCacheTTLSeconds, createSpeedupCacheObject(value));
+					destination = invalidationKeysCache;
 				}
 				if (objectsCache != null) {
 					objectsCache.remove(key);
 				}
 			} else {
 				if (objectsCache != null) {
-					objectsCache.set(key, speedupCacheTTLSeconds, createSpeedupCacheObject(value));
+					destination = objectsCache;
 				}
 				if (invalidationKeysCache != null) {
 					invalidationKeysCache.remove(key);
@@ -262,6 +280,11 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 				missesCache.remove(key);
 			}
 		}
+
+		if (destination != null) {
+			destination.set(key, speedupCacheTTLSeconds, createSpeedupCacheObject(value));
+		}
+		return (destination);
 	}
 
 	protected SpeedupCacheObject createSpeedupCacheObject(Object value) {
@@ -279,10 +302,19 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		try {
 			RestoredSpeedupCacheObject rsco = restoreObjectFromAnySpeedupCache(key);
 			if ((rsco != null) && (!rsco.expired)) {
+				if (rsco.fromCache == invalidationKeysCache) {
+					tracker.trackInvalidationKeysCacheHit(key);
+				}
+				if (rsco.fromCache == objectsCache) {
+					tracker.trackObjectsCacheHit(key);
+				}
+				if (rsco.fromCache == missesCache) {
+					tracker.trackMissesCacheHit(key);
+				}
 				return new DummyFuture<Object>(rsco.speedupCacheObject.cachedObject);
 			}
 		} catch (Exception e) {
-
+			tracker.trackException(key, e);
 		}
 
 		// Otherwise create a wrapper to capture the backend value
@@ -291,14 +323,14 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		try {
 			return createFutureBackendGetWrapper(backendFuture, key);
 		} catch (Exception e) {
-
+			tracker.trackException(key, e);
 		}
 
 		return backendFuture;
 	}
 
 	protected FutureBackendGetWrapper createFutureBackendGetWrapper(Future<Object> backendFuture, String key) {
-		return new FutureBackendGetWrapper(this, backendFuture, key, protectAgainstBackendFailures);
+		return new FutureBackendGetWrapper(this, backendFuture, key, protectAgainstBackendFailures, tracker);
 	}
 
 	protected RestoredSpeedupCacheObject restoreObjectFromAnySpeedupCache(String key) {
@@ -334,6 +366,8 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		if ((invalidationProbability >= 1) || (invalidationProbability > random.nextDouble())) {
 			rsco.expired = true;
 		}
+
+		rsco.fromCache = speedupCache;
 
 		return rsco;
 	}

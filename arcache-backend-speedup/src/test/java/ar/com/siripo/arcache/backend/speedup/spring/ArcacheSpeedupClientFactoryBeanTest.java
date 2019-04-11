@@ -1,17 +1,18 @@
 package ar.com.siripo.arcache.backend.speedup.spring;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import ar.com.siripo.arcache.ArcacheClient;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
+import ar.com.siripo.arcache.backend.speedup.ArcacheSpeedupBasicTracker;
 import ar.com.siripo.arcache.backend.speedup.ArcacheSpeedupClient;
 import ar.com.siripo.arcache.math.LinearProbabilityFunction;
 import ar.com.siripo.arcache.math.ProbabilityFunction;
-import ar.com.siripo.arcache.spring.ArcacheClientFactoryBean;
 
 public class ArcacheSpeedupClientFactoryBeanTest {
 
@@ -21,7 +22,7 @@ public class ArcacheSpeedupClientFactoryBeanTest {
 	@Before
 	public void setUp() throws Exception {
 		factoryBean = new ArcacheSpeedupClientFactoryBean();
-		speedupClient=factoryBean.client;
+		speedupClient = factoryBean.client;
 	}
 
 	@Test
@@ -67,14 +68,12 @@ public class ArcacheSpeedupClientFactoryBeanTest {
 		assertEquals(bc, speedupClient.getBackendClient());
 	}
 
-	
 	@Test
 	public void testSetInvalidationKeysCacheSize() {
 		factoryBean.setInvalidationKeysCacheSize(1);
 		assertEquals(1, speedupClient.getInvalidationKeysCacheSize());
 	}
 
-	
 	@Test
 	public void testSetObjectsCacheSize() {
 		factoryBean.setObjectsCacheSize(2);
@@ -109,7 +108,7 @@ public class ArcacheSpeedupClientFactoryBeanTest {
 	public void testSetProtectAgainstBackendFailures() {
 		factoryBean.setProtectAgainstBackendFailures(true);
 		assertEquals(true, speedupClient.getProtectAgainstBackendFailures());
-		
+
 		factoryBean.setProtectAgainstBackendFailures(false);
 		assertEquals(false, speedupClient.getProtectAgainstBackendFailures());
 	}
@@ -122,10 +121,16 @@ public class ArcacheSpeedupClientFactoryBeanTest {
 
 	@Test
 	public void testSetExpirationProbabilityFunction() {
-		ProbabilityFunction pf=new LinearProbabilityFunction(0);
+		ProbabilityFunction pf = new LinearProbabilityFunction(0);
 		factoryBean.setExpirationProbabilityFunction(pf);
 		assertEquals(pf, speedupClient.getExpirationProbabilityFunction());
 	}
 
+	@Test
+	public void testSetTracker() {
+		ArcacheSpeedupBasicTracker bt = new ArcacheSpeedupBasicTracker();
+		factoryBean.setTracker(bt);
+		assertEquals(bt, speedupClient.getTracker());
+	}
 
 }
