@@ -43,7 +43,7 @@ public class FutureBackendGetWrapperTest {
 
 		futureGet = client.backendClient.asyncGet(key);
 
-		futureBackendGetWrapper = new FutureBackendGetWrapper(client, futureGet, key, true);
+		futureBackendGetWrapper = new FutureBackendGetWrapper(client, futureGet, key, true, client.tracker);
 
 	}
 
@@ -332,11 +332,12 @@ public class FutureBackendGetWrapperTest {
 
 		flag = false;
 		futureBackendGetWrapper.speedupClient = new ArcacheSpeedupClient() {
-			protected void storeSpeedupCache(String tkey, Object value) {
+			protected ArcacheInMemoryClient storeSpeedupCache(String tkey, Object value) {
 				if ((value == result) && (tkey == key)) {
 					flag = true;
 					throw new RuntimeException();
 				}
+				return null;
 			};
 		};
 		flag = false;

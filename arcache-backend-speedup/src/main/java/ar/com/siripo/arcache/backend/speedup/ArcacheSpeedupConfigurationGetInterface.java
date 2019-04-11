@@ -43,4 +43,6 @@ public interface ArcacheSpeedupConfigurationGetInterface {
 	/** Get the probability function to be used in expiration evaluation */
 	public ProbabilityFunction getExpirationProbabilityFunction();
 
+	/** Get a tracker to keep control of speedup performance and malfunctions */
+	public ArcacheSpeedupTracker getTracker();
 }
