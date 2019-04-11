@@ -5,11 +5,11 @@ import ar.com.siripo.arcache.math.ProbabilityFunction;
 
 public interface ArcacheConfigurationGetInterface {
 
-	public long getDefaultOperationTimeout();
+	public long getDefaultOperationTimeoutMillis();
 
-	public long getTimeMeasurementError();
+	public long getTimeMeasurementErrorMillis();
 
-	public long getDefaultInvalidationWindow();
+	public long getDefaultInvalidationWindowMillis();
 
 	public boolean getDefaultHardInvalidation();
 
@@ -17,9 +17,9 @@ public interface ArcacheConfigurationGetInterface {
 
 	public String getKeyDelimiter();
 
-	public long getDefaultExpirationTime();
+	public long getDefaultExpirationTimeMillis();
 
-	public long getDefaultStoredObjectRemovalTime();
+	public long getDefaultStoredObjectRemovalTimeMillis();
 
 	public ArcacheBackendClient getBackendClient();
 

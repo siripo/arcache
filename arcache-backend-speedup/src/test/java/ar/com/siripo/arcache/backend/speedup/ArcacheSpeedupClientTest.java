@@ -91,7 +91,7 @@ public class ArcacheSpeedupClientTest {
 		client.setObjectsCacheSize(5);
 		client.setObjectsExpirationMillis(6);
 		client.setProtectAgainstBackendFailures(false);
-		client.setSpeedupCacheTTLSeconds(7);
+		client.setSpeedupCacheTTLMillis(7);
 		ArcacheSpeedupBasicTracker tracker = new ArcacheSpeedupBasicTracker();
 		client.setTracker(tracker);
 		client.initialize();
@@ -108,7 +108,7 @@ public class ArcacheSpeedupClientTest {
 		assertNotNull(client.objectsCache);
 		assertEquals(6, client.objectsExpirationMillis);
 		assertFalse(client.protectAgainstBackendFailures);
-		assertEquals(7, client.speedupCacheTTLSeconds);
+		assertEquals(7, client.speedupCacheTTLMillis);
 
 	}
 
@@ -312,16 +312,16 @@ public class ArcacheSpeedupClientTest {
 
 		// Test set as a invalidation object
 		value = new CacheInvalidationObject();
-		((CacheInvalidationObject) value).invalidationTimestamp = 1234567;
+		((CacheInvalidationObject) value).invalidationTimestampMillis = 1234567;
 
 		client.clear();
 		backendClient.clear();
 		client.missesCache.set(key, 1000, "aaa");
 		assertNotNull(client.missesCache.get(key));
 		client.asyncSet(key, 1234, value).get();
-		assertEquals(1234567, ((CacheInvalidationObject) backendClient.get(key)).invalidationTimestamp);
+		assertEquals(1234567, ((CacheInvalidationObject) backendClient.get(key)).invalidationTimestampMillis);
 		sco = (SpeedupCacheObject) client.invalidationKeysCache.get(key);
-		assertEquals(1234567, ((CacheInvalidationObject) sco.cachedObject).invalidationTimestamp);
+		assertEquals(1234567, ((CacheInvalidationObject) sco.cachedObject).invalidationTimestampMillis);
 		assertNull(client.missesCache.get(key));
 		assertNull(client.objectsCache.get(key));
 

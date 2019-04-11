@@ -31,7 +31,7 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 	protected long missesExpirationMillis = 0;
 
 	protected boolean protectAgainstBackendFailures = true;
-	protected int speedupCacheTTLSeconds = 365 * 24 * 3600;
+	protected long speedupCacheTTLMillis = 365 * 24 * 3600000L;
 	protected ProbabilityFunction expirationProbabilityFunction;
 
 	protected ArcacheSpeedupTracker tracker = null;
@@ -94,8 +94,8 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 	}
 
 	@Override
-	public void setSpeedupCacheTTLSeconds(int ttlSeconds) {
-		this.speedupCacheTTLSeconds = ttlSeconds;
+	public void setSpeedupCacheTTLMillis(long ttlMillis) {
+		this.speedupCacheTTLMillis = ttlMillis;
 	}
 
 	@Override
@@ -149,8 +149,8 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 	}
 
 	@Override
-	public int getSpeedupCacheTTLSeconds() {
-		return speedupCacheTTLSeconds;
+	public long getSpeedupCacheTTLMillis() {
+		return speedupCacheTTLMillis;
 	}
 
 	@Override
@@ -237,7 +237,7 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 	}
 
 	@Override
-	public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
+	public Future<Boolean> asyncSet(String key, long ttlMillis, Object value) {
 		try {
 			storeSpeedupCache(key, value);
 		} catch (Exception e) {
@@ -245,7 +245,7 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 			// not work must do not break the inner backend access
 			tracker.trackException(key, e);
 		}
-		return backendClient.asyncSet(key, ttlSeconds, value);
+		return backendClient.asyncSet(key, ttlMillis, value);
 	}
 
 	protected ArcacheInMemoryClient storeSpeedupCache(String key, Object value) {
@@ -282,7 +282,7 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		}
 
 		if (destination != null) {
-			destination.set(key, speedupCacheTTLSeconds, createSpeedupCacheObject(value));
+			destination.set(key, speedupCacheTTLMillis, createSpeedupCacheObject(value));
 		}
 		return (destination);
 	}

@@ -85,8 +85,8 @@ public class ArcacheSpeedupClientFactoryBean implements FactoryBean<ArcacheSpeed
 	}
 
 	@Override
-	public void setSpeedupCacheTTLSeconds(int ttlSeconds) {
-		client.setSpeedupCacheTTLSeconds(ttlSeconds);
+	public void setSpeedupCacheTTLMillis(long ttlMillis) {
+		client.setSpeedupCacheTTLMillis(ttlMillis);
 	}
 
 	@Override

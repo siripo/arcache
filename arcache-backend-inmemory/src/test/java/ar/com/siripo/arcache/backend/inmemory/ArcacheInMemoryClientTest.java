@@ -38,7 +38,7 @@ public class ArcacheInMemoryClientTest {
 		HashSet<String> hs = new HashSet<String>();
 		hs.add("OTHER");
 
-		Future<Boolean> setFuture = client.asyncSet("TESTCLIENT", 10, hs);
+		Future<Boolean> setFuture = client.asyncSet("TESTCLIENT", 10000, hs);
 
 		assertTrue(setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue());
 
@@ -58,7 +58,7 @@ public class ArcacheInMemoryClientTest {
 	@Test
 	public void testHitAndMiss() throws Exception {
 		// Hit Scenario
-		Future<Boolean> setFuture = client.asyncSet("HIT", 10, "hello");
+		Future<Boolean> setFuture = client.asyncSet("HIT", 10000, "hello");
 		assertTrue(setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue());
 
 		Future<Object> getFuture = client.asyncGet("HIT");
@@ -73,7 +73,7 @@ public class ArcacheInMemoryClientTest {
 
 	@Test
 	public void testNullValue() throws Exception {
-		Future<Boolean> setFuture = client.asyncSet("NULL", 10, null);
+		Future<Boolean> setFuture = client.asyncSet("NULL", 10000, null);
 		assertTrue(setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue());
 
 		Future<Object> getFuture = client.asyncGet("NULL");
@@ -83,7 +83,7 @@ public class ArcacheInMemoryClientTest {
 
 	@Test
 	public void testClear() throws Exception {
-		client.set("TESTCLIENT", 10, "aa");
+		client.set("TESTCLIENT", 10000, "aa");
 		assertNotEquals(client.storage.size(), 0);
 
 		client.clear();
@@ -93,27 +93,27 @@ public class ArcacheInMemoryClientTest {
 	@Test
 	public void testExpiration() throws Exception {
 		final String key = "k";
-		assertTrue(client.set(key, 10, "aa"));
+		assertTrue(client.set(key, 10000, "aa"));
 		assertNotNull(client.get(key));
 		MemoryObject mobj = client.storage.get(key);
-		mobj.expirationTime = mobj.expirationTime - 8000;
+		mobj.expirationTimeMillis = mobj.expirationTimeMillis - 8000;
 		assertNotNull(client.get(key));
-		mobj.expirationTime = mobj.expirationTime - 8000;
+		mobj.expirationTimeMillis = mobj.expirationTimeMillis - 8000;
 		assertNull(client.get(key));
 	}
 
 	@Test
 	public void testLRUEviction() throws Exception {
 		client = new ArcacheInMemoryClient(3);
-		client.set("key1", 10, "1");
-		client.set("key2", 10, "2");
-		client.set("key3", 10, "3");
+		client.set("key1", 10000, "1");
+		client.set("key2", 10000, "2");
+		client.set("key3", 10000, "3");
 
 		assertEquals("1", client.get("key1"));
 		assertEquals("2", client.get("key2"));
 		assertEquals("3", client.get("key3"));
 
-		client.set("key4", 10, "4");
+		client.set("key4", 10000, "4");
 
 		// Test eviction of Key1
 		assertNull(client.get("key1"));
@@ -126,7 +126,7 @@ public class ArcacheInMemoryClientTest {
 		assertEquals("3", client.get("key3"));
 		assertEquals("2", client.get("key2"));
 
-		client.set("key5", 10, "5");
+		client.set("key5", 10000, "5");
 
 		assertNull(client.get("key1"));
 		assertEquals("2", client.get("key2"));
@@ -135,12 +135,12 @@ public class ArcacheInMemoryClientTest {
 		assertEquals("5", client.get("key5"));
 
 	}
-	
+
 	@Test
 	public void testRemove() throws Exception {
 		final String key = "k";
-		assertTrue(client.set(key, 10, "aa"));
-		assertTrue(client.set("k2", 10, "aa"));
+		assertTrue(client.set(key, 10000, "aa"));
+		assertTrue(client.set("k2", 10000, "aa"));
 		assertNotNull(client.get(key));
 		client.remove(key);
 		assertNull(client.get(key));

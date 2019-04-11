@@ -36,8 +36,8 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 	}
 
 	@Override
-	public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
-		return new DummyFuture<Boolean>(set(key, ttlSeconds, value));
+	public Future<Boolean> asyncSet(String key, long ttlMillis, Object value) {
+		return new DummyFuture<Boolean>(set(key, ttlMillis, value));
 	}
 
 	@Override
@@ -54,17 +54,17 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 
 		Object obj = null;
 		if (inMemoryObject != null) {
-			if (inMemoryObject.expirationTime > System.currentTimeMillis()) {
+			if (inMemoryObject.expirationTimeMillis > System.currentTimeMillis()) {
 				obj = objectSerializer.deserialize(inMemoryObject.data);
 			}
 		}
 		return obj;
 	}
 
-	public boolean set(String key, int ttlSeconds, Object value) {
+	public boolean set(String key, long ttlMillis, Object value) {
 
 		MemoryObject inMemoryObject = new MemoryObject();
-		inMemoryObject.expirationTime = System.currentTimeMillis() + (ttlSeconds * 1000);
+		inMemoryObject.expirationTimeMillis = System.currentTimeMillis() + ttlMillis;
 		inMemoryObject.data = objectSerializer.serializeToByteArray(value);
 
 		synchronized (storage) {

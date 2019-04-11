@@ -40,10 +40,10 @@ public class ArcacheJedisClient implements ArcacheBackendClient {
 	}
 
 	@Override
-	public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
+	public Future<Boolean> asyncSet(String key, long ttlMillis, Object value) {
 
 		String vals = convertObjectToRedisString(value);
-		String ret = jedisCommands.setex(key, ttlSeconds, vals);
+		String ret = jedisCommands.setex(key, (int) ((ttlMillis + 999) / 1000), vals);
 		if (!"OK".equals(ret)) {
 			return new DummyFuture<Boolean>(false);
 		}

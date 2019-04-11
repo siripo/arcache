@@ -78,10 +78,12 @@ import java.io.Serializable;
  */
 public class CacheInvalidationObject implements CacheInvalidationObjectType, Serializable {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 20180410001L;
 
-	/** unix timestamp del momento en el cual se pide la invalidacion */
-	public long invalidationTimestamp;
+	/**
+	 * unix timestamp in milliseconds del momento en el cual se pide la invalidacion
+	 */
+	public long invalidationTimestampMillis;
 
 	/**
 	 * Indica si la invalidacion es hard o soft. En el caso de hard si se determina
@@ -101,18 +103,18 @@ public class CacheInvalidationObject implements CacheInvalidationObjectType, Ser
 	 * considerado invalido. Esto permite que una invalidacion no colapse el
 	 * sistema.
 	 */
-	public long invalidationWindowSecs;
+	public long invalidationWindowMillis;
 
 	/**
 	 * if this has a value greater than zero, all the keys older than this timestamp
 	 * are considered hard invalidated.
 	 */
-	public long lastHardInvalidationTimestamp;
+	public long lastHardInvalidationTimestampMillis;
 
 	/**
 	 * if this has a value greater than zero, all the keys older than this timestamp
 	 * are considered soft invalidated.
 	 */
-	public long lastSoftInvalidationTimestamp;
+	public long lastSoftInvalidationTimestampMillis;
 
 }

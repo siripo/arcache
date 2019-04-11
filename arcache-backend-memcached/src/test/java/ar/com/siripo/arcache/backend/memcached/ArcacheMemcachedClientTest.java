@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import net.spy.memcached.MemcachedClient;
+import net.spy.memcached.internal.OperationFuture;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ArcacheMemcachedClientTest {
@@ -70,7 +71,7 @@ public class ArcacheMemcachedClientTest {
 		HashSet<String> hs = new HashSet<String>();
 		hs.add("OTHER");
 
-		Future<Boolean> setFuture = client.asyncSet("TESTCLIENT", 10, hs);
+		Future<Boolean> setFuture = client.asyncSet("TESTCLIENT", 10000, hs);
 
 		if (!setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue()) {
 			fail("Failed to store");
@@ -87,5 +88,40 @@ public class ArcacheMemcachedClientTest {
 		assertEquals(retrievedValue, hs);
 
 		assertFalse(retrievedValue == hs);
+	}
+
+	private int testVerifyMillisToSecondConversion_exp;
+
+	@Test
+	public void testVerifyMillisToSecondConversion() throws Exception {
+		memcachedClient = new MemcachedClient(new InetSocketAddress("localhost", 11211)) {
+			@Override
+			public OperationFuture<Boolean> set(String key, int exp, Object o) {
+				testVerifyMillisToSecondConversion_exp = exp;
+				return null;
+			}
+		};
+		client = new ArcacheMemcachedClient(memcachedClient);
+
+		client.asyncSet(null, 0, null);
+		assertEquals(0, testVerifyMillisToSecondConversion_exp);
+
+		client.asyncSet(null, 1, null);
+		assertEquals(1, testVerifyMillisToSecondConversion_exp);
+
+		client.asyncSet(null, 2, null);
+		assertEquals(1, testVerifyMillisToSecondConversion_exp);
+
+		client.asyncSet(null, 999, null);
+		assertEquals(1, testVerifyMillisToSecondConversion_exp);
+
+		client.asyncSet(null, 1000, null);
+		assertEquals(1, testVerifyMillisToSecondConversion_exp);
+
+		client.asyncSet(null, 1001, null);
+		assertEquals(2, testVerifyMillisToSecondConversion_exp);
+
+		client.asyncSet(null, 123456, null);
+		assertEquals(124, testVerifyMillisToSecondConversion_exp);
 	}
 }

@@ -26,7 +26,7 @@ public class InvalidateKeyTask implements Future<Boolean> {
 
 	protected final String key;
 	protected final boolean hardInvalidation;
-	protected final long invalidationWindowSecs;
+	protected final long invalidationWindowMillis;
 	protected final ArcacheBackendClient backendClient;
 	protected final BackendKeyBuilder keyBuilder;
 	protected final ArcacheConfigurationGetInterface config;
@@ -38,12 +38,12 @@ public class InvalidateKeyTask implements Future<Boolean> {
 	protected Future<Object> prevVersionGetFuture;
 	protected Future<Boolean> setFuture;
 
-	protected InvalidateKeyTask(String key, boolean hardInvalidation, long invalidationWindowSecs,
+	protected InvalidateKeyTask(String key, boolean hardInvalidation, long invalidationWindowMillis,
 			ArcacheBackendClient backendClient, BackendKeyBuilder keyBuilder, ArcacheConfigurationGetInterface config) {
 
 		this.key = key;
 		this.hardInvalidation = hardInvalidation;
-		this.invalidationWindowSecs = invalidationWindowSecs;
+		this.invalidationWindowMillis = invalidationWindowMillis;
 		this.backendClient = backendClient;
 		this.keyBuilder = keyBuilder;
 		this.config = config;
@@ -82,7 +82,7 @@ public class InvalidateKeyTask implements Future<Boolean> {
 	@Override
 	public Boolean get() throws InterruptedException, ExecutionException {
 		try {
-			return get(config.getDefaultOperationTimeout(), TimeUnit.MILLISECONDS);
+			return get(config.getDefaultOperationTimeoutMillis(), TimeUnit.MILLISECONDS);
 		} catch (TimeoutException toe) {
 			throw new ExecutionException(toe);
 		}
@@ -110,9 +110,8 @@ public class InvalidateKeyTask implements Future<Boolean> {
 
 		CacheInvalidationObject invalidationObject = createInvalidationObject(startTimeMillis,
 				previousInvalidationObject);
-		
-		valueToReturn = setInvalidationObject(startTimeMillis,
-				timeoutMillis,invalidationObject);
+
+		valueToReturn = setInvalidationObject(startTimeMillis, timeoutMillis, invalidationObject);
 
 		done = true;
 
@@ -123,20 +122,20 @@ public class InvalidateKeyTask implements Future<Boolean> {
 			final CacheInvalidationObject previousInvalidationObject) {
 		CacheInvalidationObject invalidationObject = new CacheInvalidationObject();
 
-		invalidationObject.invalidationTimestamp = startTimeMillis / 1000;
-		invalidationObject.invalidationWindowSecs = invalidationWindowSecs;
+		invalidationObject.invalidationTimestampMillis = startTimeMillis;
+		invalidationObject.invalidationWindowMillis = invalidationWindowMillis;
 		invalidationObject.isHardInvalidation = hardInvalidation;
-		invalidationObject.lastHardInvalidationTimestamp = 0;
-		invalidationObject.lastSoftInvalidationTimestamp = 0;
+		invalidationObject.lastHardInvalidationTimestampMillis = 0;
+		invalidationObject.lastSoftInvalidationTimestampMillis = 0;
 
 		if (previousInvalidationObject != null) {
-			invalidationObject.lastHardInvalidationTimestamp = previousInvalidationObject.lastHardInvalidationTimestamp;
-			invalidationObject.lastSoftInvalidationTimestamp = previousInvalidationObject.lastSoftInvalidationTimestamp;
+			invalidationObject.lastHardInvalidationTimestampMillis = previousInvalidationObject.lastHardInvalidationTimestampMillis;
+			invalidationObject.lastSoftInvalidationTimestampMillis = previousInvalidationObject.lastSoftInvalidationTimestampMillis;
 
 			if (previousInvalidationObject.isHardInvalidation) {
-				invalidationObject.lastHardInvalidationTimestamp = previousInvalidationObject.invalidationTimestamp;
+				invalidationObject.lastHardInvalidationTimestampMillis = previousInvalidationObject.invalidationTimestampMillis;
 			} else {
-				invalidationObject.lastSoftInvalidationTimestamp = previousInvalidationObject.invalidationTimestamp;
+				invalidationObject.lastSoftInvalidationTimestampMillis = previousInvalidationObject.invalidationTimestampMillis;
 			}
 
 		}
@@ -146,11 +145,11 @@ public class InvalidateKeyTask implements Future<Boolean> {
 	protected CacheInvalidationObject getPreviousInvalidationObject(final long startTimeMillis,
 			final long timeoutMillis) throws InterruptedException, ExecutionException, TimeoutException {
 		try {
-			long remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
-			if (remainingTime <= 0) {
+			long remainingTimeMillis = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
+			if (remainingTimeMillis <= 0) {
 				throw new TimeoutException();
 			}
-			Object rawCachedObject = prevVersionGetFuture.get(remainingTime, TimeUnit.MILLISECONDS);
+			Object rawCachedObject = prevVersionGetFuture.get(remainingTimeMillis, TimeUnit.MILLISECONDS);
 			if (!(rawCachedObject instanceof CacheInvalidationObject)) {
 				// In case of invalid type, treat as miss
 				return null;
@@ -171,13 +170,13 @@ public class InvalidateKeyTask implements Future<Boolean> {
 			throws InterruptedException, ExecutionException, TimeoutException {
 
 		setFuture = backendClient.asyncSet(keyBuilder.createInvalidationBackendKey(key),
-				(int) config.getDefaultStoredObjectRemovalTime(), invalidationObject);
+				config.getDefaultStoredObjectRemovalTimeMillis(), invalidationObject);
 
-		long remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
-		if (remainingTime <= 0) {
+		long remainingTimeMillis = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
+		if (remainingTimeMillis <= 0) {
 			throw new TimeoutException();
 		}
-		return setFuture.get(remainingTime, TimeUnit.MILLISECONDS);
+		return setFuture.get(remainingTimeMillis, TimeUnit.MILLISECONDS);
 	}
 
 }

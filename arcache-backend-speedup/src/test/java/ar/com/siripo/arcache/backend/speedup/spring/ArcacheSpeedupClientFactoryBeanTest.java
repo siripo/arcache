@@ -114,9 +114,9 @@ public class ArcacheSpeedupClientFactoryBeanTest {
 	}
 
 	@Test
-	public void testSetSpeedupCacheTTLSeconds() {
-		factoryBean.setSpeedupCacheTTLSeconds(6);
-		assertEquals(6, speedupClient.getSpeedupCacheTTLSeconds());
+	public void testSetSpeedupCacheTTLMillis() {
+		factoryBean.setSpeedupCacheTTLMillis(6);
+		assertEquals(6, speedupClient.getSpeedupCacheTTLMillis());
 	}
 
 	@Test

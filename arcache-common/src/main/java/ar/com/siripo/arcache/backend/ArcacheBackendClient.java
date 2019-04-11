@@ -12,11 +12,11 @@ public interface ArcacheBackendClient {
 	 * If the key is invalid IllegalArgumentException is thrown
 	 * 
 	 * @param key
-	 * @param ttlSeconds time to live in seconds of the stored object
+	 * @param ttlMillis time to live in milli seconds of the stored object
 	 * @param value
 	 * @return
 	 */
-	public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value);
+	public Future<Boolean> asyncSet(String key, long ttlMillis, Object value);
 
 	public Future<Object> asyncGet(String key);
 
