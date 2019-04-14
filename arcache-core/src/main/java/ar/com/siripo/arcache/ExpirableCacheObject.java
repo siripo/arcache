@@ -3,33 +3,31 @@ package ar.com.siripo.arcache;
 import java.io.Serializable;
 
 /**
- * Es el objeto que será almacenado en el backend para representar valores
- * convencionales.
+ * This object is the one that will be stored in the backend to contain the
+ * domain objects to be cached. It also has the necessary attributes to
+ * determine the expiration and invalidation.
  * 
  * @author Mariano Santamarina
  *
  */
 public class ExpirableCacheObject implements Serializable {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 20180410001L;
 
 	/** The application domain value to be remembered and restored */
 	public Object value;
 
+	/** Unix timestamp (in milliseconds) of the moment where the value was stored */
+	public long timestampMillis;
+
 	/**
-	 * Unix timestamp (in seconds) of the moment where the value is stored
+	 * Expiration TTL in milliseconds, after that the key must be considered expired
 	 */
-	public long timestamp;
-
-	/** TTL total de la key, a partir de ese momento se considera Expirado */
-	public long maxTTLSecs;
-
-	/** ttl minimo, a partir de ese momento inicia la posiblidad de expiracion */
-	public long minTTLSecs;
+	public long expirationTTLMillis;
 
 	/**
-	 * lista de conjuntos a los cuales pertenece esta clave, los cuales permiten
-	 * expirar la misma
+	 * list of sets to which this key belongs, which allow the invalidation of
+	 * groups
 	 */
 	public String[] invalidationKeys;
 

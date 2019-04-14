@@ -7,6 +7,7 @@ import org.springframework.beans.factory.InitializingBean;
 import ar.com.siripo.arcache.ArcacheClient;
 import ar.com.siripo.arcache.ArcacheConfigurationSetInterface;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.math.ProbabilityFunction;
 
 public class ArcacheClientFactoryBean
 		implements FactoryBean<ArcacheClient>, InitializingBean, DisposableBean, ArcacheConfigurationSetInterface {
@@ -43,18 +44,18 @@ public class ArcacheClientFactoryBean
 	}
 
 	@Override
-	public void setDefaultOperationTimeout(long timeoutMillis) {
-		client.setDefaultOperationTimeout(timeoutMillis);
+	public void setDefaultOperationTimeoutMillis(long timeoutMillis) {
+		client.setDefaultOperationTimeoutMillis(timeoutMillis);
 	}
 
 	@Override
-	public void setTimeMeasurementError(long errorSecs) {
-		client.setTimeMeasurementError(errorSecs);
+	public void setTimeMeasurementErrorMillis(long errorMillis) {
+		client.setTimeMeasurementErrorMillis(errorMillis);
 	}
 
 	@Override
-	public void setDefaultInvalidationWindow(long windowSecs) {
-		client.setDefaultInvalidationWindow(windowSecs);
+	public void setDefaultInvalidationWindowMillis(long windowMillis) {
+		client.setDefaultInvalidationWindowMillis(windowMillis);
 	}
 
 	@Override
@@ -73,18 +74,34 @@ public class ArcacheClientFactoryBean
 	}
 
 	@Override
-	public void setDefaultExpirationTime(long expirationTimeSecs) {
-		client.setDefaultExpirationTime(expirationTimeSecs);
+	public void setDefaultExpirationTimeMillis(long expirationTimeMillis) {
+		client.setDefaultExpirationTimeMillis(expirationTimeMillis);
 	}
 
 	@Override
-	public void setDefaultStoredObjectRemovalTime(long removeTimeSecs) {
-		client.setDefaultStoredObjectRemovalTime(removeTimeSecs);
+	public void setDefaultStoredObjectRemovalTimeMillis(long removeTimeMillis) {
+		client.setDefaultStoredObjectRemovalTimeMillis(removeTimeMillis);
 	}
 
 	@Override
 	public void setBackendClient(ArcacheBackendClient backendClient) {
 		client.setBackendClient(backendClient);
+	}
+
+	@Override
+	public void setExpirationProbabilityFunction(ProbabilityFunction expirationProbabilityFunction) {
+		client.setExpirationProbabilityFunction(expirationProbabilityFunction);
+
+	}
+
+	@Override
+	public void setInvalidationProbabilityFunction(ProbabilityFunction invalidationProbabilityFunction) {
+		client.setInvalidationProbabilityFunction(invalidationProbabilityFunction);
+	}
+
+	@Override
+	public void setInvalidationBackendClient(ArcacheBackendClient invalidationBackendClient) {
+		client.setInvalidationBackendClient(invalidationBackendClient);
 	}
 
 }

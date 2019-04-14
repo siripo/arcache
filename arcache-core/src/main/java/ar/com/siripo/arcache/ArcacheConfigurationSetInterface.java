@@ -1,6 +1,7 @@
 package ar.com.siripo.arcache;
 
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.math.ProbabilityFunction;
 
 public interface ArcacheConfigurationSetInterface {
 
@@ -9,25 +10,25 @@ public interface ArcacheConfigurationSetInterface {
 	 * @param timeoutMillis timeoutMillis the default timeout to be used in backend
 	 *                      operations
 	 */
-	public void setDefaultOperationTimeout(long timeoutMillis);
+	public void setDefaultOperationTimeoutMillis(long timeoutMillis);
 
 	/**
-	 * Error total en la medicion de tiempos expresado en segundos debe ser 1 +
-	 * maxClockOffset + maxKeyCreationTime maxClockOffset (diferencia maxima entre 2
-	 * relojes de la infraestructura involucrada) maxKeyCreationTime (Tiempo (95pt)
-	 * que demanda generar un valor a ser almacenado)
+	 * Error total en la medicion de tiempos expresado en mili segundos debe ser
+	 * 1000 + maxClockOffset + maxKeyCreationTime maxClockOffset (diferencia maxima
+	 * entre 2 relojes de la infraestructura involucrada) maxKeyCreationTime (Tiempo
+	 * (95pt) que demanda generar un valor a ser almacenado)
 	 * 
-	 * @param errorSecs the time measurament error in seconds
+	 * @param errorMillis the time measurament error in milliseconds
 	 */
-	public void setTimeMeasurementError(long errorSecs);
+	public void setTimeMeasurementErrorMillis(long errorMillis);
 
 	/**
 	 * set the default invalidation window, this is the ammount of time to do
 	 * probabilistic invalidation.
 	 * 
-	 * @param windowSecs invalidation window in seconds
+	 * @param windowMillis invalidation window in milliseconds
 	 */
-	public void setDefaultInvalidationWindow(long windowSecs);
+	public void setDefaultInvalidationWindowMillis(long windowMillis);
 
 	/**
 	 * 
@@ -54,20 +55,46 @@ public interface ArcacheConfigurationSetInterface {
 	/**
 	 * Sets the default value to be used to consider a cached object expired
 	 * 
-	 * @param expirationTimeSecs ...
+	 * @param expirationTimeMillis ...
 	 */
-	public void setDefaultExpirationTime(long expirationTimeSecs);
+	public void setDefaultExpirationTimeMillis(long expirationTimeMillis);
 
 	/**
 	 * Sets the default value to be used to set the lifetime of the object at
 	 * backend level. When this time is reached the object is expected to be removed
 	 * 
-	 * @param removeTimeSecs ...
+	 * @param removeTimeMillis ...
 	 */
-	public void setDefaultStoredObjectRemovalTime(long removeTimeSecs);
-	
-	
-	
+	public void setDefaultStoredObjectRemovalTimeMillis(long removeTimeMillis);
+
+	/**
+	 * Sets the default backend client to store objects and invalidationkeys
+	 * 
+	 * @param backendClient
+	 */
 	public void setBackendClient(ArcacheBackendClient backendClient);
+
+	/**
+	 * Set the invalidation backend client to store invalidationkeys If you null
+	 * this, then the defaultBackendClient is used.
+	 * 
+	 * @param invalidationBackendClient
+	 */
+	public void setInvalidationBackendClient(ArcacheBackendClient invalidationBackendClient);
+
+	/**
+	 * Sets the function to be used to compute the probability of a key has expired
+	 * 
+	 * @param expirationProbabilityFunction
+	 */
+	public void setExpirationProbabilityFunction(ProbabilityFunction expirationProbabilityFunction);
+
+	/**
+	 * Sets the function to be used to compute the probability of a key has
+	 * invalidated
+	 * 
+	 * @param invalidationProbabilityFunction
+	 */
+	public void setInvalidationProbabilityFunction(ProbabilityFunction invalidationProbabilityFunction);
 
 }

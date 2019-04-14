@@ -15,6 +15,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 
 	protected final String key;
 	protected final ArcacheBackendClient backendClient;
+	protected final ArcacheBackendClient invalidationBackendClient;
 	protected final BackendKeyBuilder keyBuilder;
 	protected final ArcacheConfigurationGetInterface config;
 	protected final Random random;
@@ -25,10 +26,12 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	protected Future<Object> mainFutureGet;
 	protected HashMap<String, Future<Object>> invalidationKeysFutureGets;
 
-	protected CacheGetterTask(String key, ArcacheBackendClient backendClient, BackendKeyBuilder keyBuilder,
+	protected CacheGetterTask(String key, ArcacheBackendClient backendClient,
+			ArcacheBackendClient invalidationBackendClient, BackendKeyBuilder keyBuilder,
 			ArcacheConfigurationGetInterface config, Random random) {
 		this.key = key;
 		this.backendClient = backendClient;
+		this.invalidationBackendClient = invalidationBackendClient;
 		this.keyBuilder = keyBuilder;
 		this.config = config;
 		this.random = random;
@@ -71,7 +74,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	@Override
 	public CacheGetResult get() throws InterruptedException, ExecutionException {
 		try {
-			return get(config.getDefaultOperationTimeout(), TimeUnit.MILLISECONDS);
+			return get(config.getDefaultOperationTimeoutMillis(), TimeUnit.MILLISECONDS);
 		} catch (TimeoutException toe) {
 			throw new ExecutionException(toe);
 		}
@@ -95,13 +98,13 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			return valueToReturn;
 		}
 
-		long remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
+		long remainingTimeMillis = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
 
-		if (remainingTime <= 0) {
+		if (remainingTimeMillis <= 0) {
 			throw new TimeoutException();
 		}
 
-		Object rawCachedObject = mainFutureGet.get(remainingTime, TimeUnit.MILLISECONDS);
+		Object rawCachedObject = mainFutureGet.get(remainingTimeMillis, TimeUnit.MILLISECONDS);
 
 		// In case of a MISS, returns now and stores the result
 		if (rawCachedObject == null) {
@@ -127,7 +130,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 		// Build the result
 		CacheGetResult result = new CacheGetResult(Type.HIT);
 		result.value = cachedObject.value;
-		result.storeTimestamp = cachedObject.timestamp;
+		result.storeTimestampMillis = cachedObject.timestampMillis;
 		result.invalidationKeys = cachedObject.invalidationKeys;
 
 		// is Expired?
@@ -155,24 +158,26 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	}
 
 	protected boolean isCachedObjectExpired(final ExpirableCacheObject cachedObject, final long currentTimeMillis) {
-		long age = (currentTimeMillis / 1000) - cachedObject.timestamp;
-		if (age >= cachedObject.maxTTLSecs) {
+		/*
+		 * The calculations are done in milliseconds so that it performs better the
+		 * probability function
+		 */
+		double agems = currentTimeMillis - cachedObject.timestampMillis;
+		double expms = cachedObject.expirationTTLMillis;
 
-			return true;
-
-		} else if (cachedObject.minTTLSecs >= cachedObject.maxTTLSecs) {
+		double age_normalized = 1;
+		if (expms > 0) {
+			age_normalized = agems / expms;
+		}
+		double expirationProbability = config.getExpirationProbabilityFunction().getProbability(age_normalized);
+		if (expirationProbability <= 0) {
 			return false;
-		} else if (age > cachedObject.minTTLSecs) {
-			double ageInZone = age - cachedObject.minTTLSecs;
-			double invalidationZoneWidth = cachedObject.maxTTLSecs - cachedObject.minTTLSecs;
-			double expirationProbability = ageInZone / invalidationZoneWidth;
-
-			if (expirationProbability > random.nextDouble()) {
-				return true;
-			}
+		}
+		if (expirationProbability >= 1) {
+			return true;
 		}
 
-		return false;
+		return (expirationProbability > random.nextDouble());
 	}
 
 	protected HashMap<String, CacheInvalidationObject> loadInvalidationKeys(final ExpirableCacheObject cachedObject,
@@ -190,7 +195,8 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 		// Build the missing futures
 		for (final String invkey : cachedObject.invalidationKeys) {
 			if (!invalidationKeysFutureGets.containsKey(invkey)) {
-				Future<Object> fut = backendClient.asyncGet(keyBuilder.createInvalidationBackendKey(invkey));
+				Future<Object> fut = invalidationBackendClient
+						.asyncGet(keyBuilder.createInvalidationBackendKey(invkey));
 				invalidationKeysFutureGets.put(invkey, fut);
 			}
 		}
@@ -206,14 +212,14 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			}
 
 			// If have no more time, throws timeout
-			long remainingTime = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
-			if (remainingTime <= 0) {
+			long remainingTimeMillis = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
+			if (remainingTimeMillis <= 0) {
 				throw new TimeoutException();
 			}
 
 			// Load the key
 			CacheInvalidationObject invObj = getsCacheInvalidationObjectFromFuture(
-					invalidationKeysFutureGets.get(invkey), remainingTime);
+					invalidationKeysFutureGets.get(invkey), remainingTimeMillis);
 			invMap.put(invkey, invObj);
 
 		}
@@ -221,10 +227,10 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 		return invMap;
 	}
 
-	protected CacheInvalidationObject getsCacheInvalidationObjectFromFuture(Future<Object> future, long timeout)
+	protected CacheInvalidationObject getsCacheInvalidationObjectFromFuture(Future<Object> future, long timeoutMillis)
 			throws InterruptedException, ExecutionException, TimeoutException {
 
-		Object rawCachedObject = future.get(timeout, TimeUnit.MILLISECONDS);
+		Object rawCachedObject = future.get(timeoutMillis, TimeUnit.MILLISECONDS);
 
 		// In miss case, no problem, returns miss
 		if (rawCachedObject == null) {
@@ -246,13 +252,13 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 		}
 
 		// If the key was set more recently than timeMeasurementError assume its valid
-		if ((currentTimeMillis / 1000) - config.getTimeMeasurementError() < cachedObject.timestamp) {
+		if (currentTimeMillis - config.getTimeMeasurementErrorMillis() < cachedObject.timestampMillis) {
 			return null;
 		}
 
 		// Effective time used to test validation. The correction applied is to see the
 		// key older than read value and gain more consistency
-		long effectiveStoreTimestamp = cachedObject.timestamp - config.getTimeMeasurementError();
+		long effectiveStoreTimestampMillis = cachedObject.timestampMillis - config.getTimeMeasurementErrorMillis();
 
 		for (final String invkey : invalidationMap.keySet()) {
 			final CacheInvalidationObject invObj = invalidationMap.get(invkey);
@@ -261,28 +267,29 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			}
 
 			// If its older than previous hard invalidation. Its hard invalidated
-			if (effectiveStoreTimestamp <= invObj.lastHardInvalidationTimestamp) {
+			if (effectiveStoreTimestampMillis <= invObj.lastHardInvalidationTimestampMillis) {
 				return new InvalidatedKey(invObj, invkey, true);
 			}
 
 			// Test validity against store time of invalidation
-			if (effectiveStoreTimestamp <= invObj.invalidationTimestamp) {
+			if (effectiveStoreTimestampMillis <= invObj.invalidationTimestampMillis) {
 				// if no window is configured, it is invalidated right now
-				if (invObj.invalidationWindowSecs <= 0) {
+				if (invObj.invalidationWindowMillis <= 0) {
 					return new InvalidatedKey(invObj, invkey, invObj.isHardInvalidation);
 				}
-				double invalidTime = invObj.invalidationTimestamp - effectiveStoreTimestamp;
-				double normalizedTimeInsideWindow = invalidTime / invObj.invalidationWindowSecs;
+				double invalidTimeMS = invObj.invalidationTimestampMillis - effectiveStoreTimestampMillis;
+				double normalizedTimeInsideWindow = invalidTimeMS / invObj.invalidationWindowMillis;
+				double invalidationProbability = config.getInvalidationProbabilityFunction()
+						.getProbability(normalizedTimeInsideWindow);
 
-				// Apply linear probability
-				if (normalizedTimeInsideWindow > random.nextDouble()) {
+				if ((invalidationProbability >= 1) || (invalidationProbability > random.nextDouble())) {
 					return new InvalidatedKey(invObj, invkey, invObj.isHardInvalidation);
 				}
 
 			}
 
 			// If its older than previous soft invalidation. Its soft invalidated
-			if (effectiveStoreTimestamp <= invObj.lastSoftInvalidationTimestamp) {
+			if (effectiveStoreTimestampMillis <= invObj.lastSoftInvalidationTimestampMillis) {
 				return new InvalidatedKey(invObj, invkey, false);
 			}
 		}

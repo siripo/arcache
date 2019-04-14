@@ -1,36 +1,56 @@
 package ar.com.siripo.arcache.backend.inmemory;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+
+import org.apache.commons.collections4.map.LRUMap;
 
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
 import ar.com.siripo.arcache.util.DummyFuture;
 import ar.com.siripo.arcache.util.ObjectSerializer;
 
 /**
- * In memory Backend, util ONLY for testing. Because does not have eviction and
- * memory control
+ * In memory Backend
  * 
  * @author Mariano Santamarina
  *
  */
 public class ArcacheInMemoryClient implements ArcacheBackendClient {
 
-	protected ConcurrentHashMap<String, MemoryObject> storage;
+	protected LRUMap<String, MemoryObject> storage;
 	protected ObjectSerializer objectSerializer;
 
+	protected int lruMaxSize = 1000;
+
+	/**
+	 * When cache is isolated, all the stored objects are serialized to be stored,
+	 * And deserialized to be retrieved from cache
+	 */
+	protected boolean cacheIsolation;
+
 	public ArcacheInMemoryClient() {
+		this(1000, false);
+	}
+
+	public ArcacheInMemoryClient(int maxSize) {
+		this(maxSize, false);
+	}
+
+	public ArcacheInMemoryClient(int maxSize, boolean cacheIsolation) {
+		this.lruMaxSize = maxSize;
+		this.cacheIsolation = cacheIsolation;
 		initialize();
 	}
 
 	private void initialize() {
-		storage = new ConcurrentHashMap<String, MemoryObject>();
-		objectSerializer = new ObjectSerializer();
+		storage = new LRUMap<String, MemoryObject>(lruMaxSize);
+		if (cacheIsolation) {
+			objectSerializer = new ObjectSerializer();
+		}
 	}
 
 	@Override
-	public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
-		return new DummyFuture<Boolean>(set(key, ttlSeconds, value));
+	public Future<Boolean> asyncSet(String key, long ttlMillis, Object value) {
+		return new DummyFuture<Boolean>(set(key, ttlMillis, value));
 	}
 
 	@Override
@@ -39,28 +59,52 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 	}
 
 	public Object get(String key) {
-		MemoryObject inMemoryObject = storage.get(key);
+		MemoryObject inMemoryObject;
+
+		synchronized (storage) {
+			inMemoryObject = storage.get(key);
+		}
+
 		Object obj = null;
 		if (inMemoryObject != null) {
-			if (inMemoryObject.expirationTime > System.currentTimeMillis()) {
-				obj = objectSerializer.deserialize(inMemoryObject.data);
+			if (inMemoryObject.expirationTimeMillis > System.currentTimeMillis()) {
+				if (cacheIsolation) {
+					obj = objectSerializer.deserialize((byte[]) inMemoryObject.data);
+				} else {
+					obj = inMemoryObject.data;
+				}
 			}
 		}
 		return obj;
 	}
 
-	public boolean set(String key, int ttlSeconds, Object value) {
+	public boolean set(String key, long ttlMillis, Object value) {
 
 		MemoryObject inMemoryObject = new MemoryObject();
-		inMemoryObject.expirationTime = System.currentTimeMillis() + (ttlSeconds * 1000);
-		inMemoryObject.data = objectSerializer.serializeToByteArray(value);
-		storage.put(key, inMemoryObject);
+		inMemoryObject.expirationTimeMillis = System.currentTimeMillis() + ttlMillis;
+		if (cacheIsolation) {
+			inMemoryObject.data = objectSerializer.serializeToByteArray(value);
+		} else {
+			inMemoryObject.data = value;
+		}
+
+		synchronized (storage) {
+			storage.put(key, inMemoryObject);
+		}
 
 		return true;
 	}
 
+	public void remove(String key) {
+		synchronized (storage) {
+			storage.remove(key);
+		}
+	}
+
 	public void clear() {
-		storage.clear();
+		synchronized (storage) {
+			storage.clear();
+		}
 	}
 
 }

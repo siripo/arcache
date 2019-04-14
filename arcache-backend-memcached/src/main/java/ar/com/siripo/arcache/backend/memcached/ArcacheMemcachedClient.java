@@ -20,8 +20,8 @@ public class ArcacheMemcachedClient implements ArcacheBackendClient {
 	}
 
 	@Override
-	public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
-		return memcachedClient.set(key, ttlSeconds, value);
+	public Future<Boolean> asyncSet(String key, long ttlMillis, Object value) {
+		return memcachedClient.set(key, (int) ((ttlMillis + 999) / 1000), value);
 	}
 
 	@Override

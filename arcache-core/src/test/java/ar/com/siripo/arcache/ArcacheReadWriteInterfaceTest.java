@@ -51,7 +51,7 @@ public class ArcacheReadWriteInterfaceTest {
 			}
 		};
 
-		clix.setDefaultOperationTimeout(456);
+		clix.setDefaultOperationTimeoutMillis(456);
 		assertEquals(clix.get("key"), "456");
 	}
 
@@ -162,7 +162,7 @@ public class ArcacheReadWriteInterfaceTest {
 			}
 		};
 
-		clix.setDefaultOperationTimeout(334);
+		clix.setDefaultOperationTimeoutMillis(334);
 		assertEquals(clix.getCacheObject("key").value, "334");
 	}
 
@@ -346,25 +346,25 @@ public class ArcacheReadWriteInterfaceTest {
 
 		ArcacheBackendClient backendClientx = new ArcacheInMemoryClient() {
 			@Override
-			public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
+			public Future<Boolean> asyncSet(String key, long ttlMillis, Object value) {
 				ExpirableCacheObject expObj = (ExpirableCacheObject) value;
 				assertEquals(cliorig.createBackendKey("key"), key);
-				assertEquals(Math.max(2, Math.abs(expObj.timestamp - System.currentTimeMillis() / 1000)), 2);
+				assertEquals(Math.max(2000, Math.abs(expObj.timestampMillis - System.currentTimeMillis())), 2000);
 				assertEquals(expObj.value, "val");
 				assertArrayEquals(expObj.invalidationKeys, new String[] { "a", "b" });
-				assertEquals(ttlSeconds, 555);
+				assertEquals(ttlMillis, 555);
 				return null;
 			}
 		};
 		ArcacheClient clix = new ArcacheClient(backendClientx);
-		clix.setDefaultStoredObjectRemovalTime(555);
+		clix.setDefaultStoredObjectRemovalTimeMillis(555);
 
 		clix.asyncSet("key", "val", new String[] { "a", "b" });
 
 		// Test handle Exception
 		ArcacheBackendClient backendClientEx = new ArcacheInMemoryClient() {
 			@Override
-			public Future<Boolean> asyncSet(String key, int ttlSeconds, Object value) {
+			public Future<Boolean> asyncSet(String key, long ttlMillis, Object value) {
 				throw new IllegalStateException();
 			}
 		};
