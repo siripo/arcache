@@ -99,4 +99,9 @@ public class ArcacheSpeedupClientFactoryBean implements FactoryBean<ArcacheSpeed
 		client.setTracker(tracker);
 	}
 
+	@Override
+	public void setCacheIsolation(boolean cacheIsolation) {
+		client.setCacheIsolation(cacheIsolation);
+	}
+
 }

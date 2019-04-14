@@ -45,4 +45,6 @@ public interface ArcacheSpeedupConfigurationGetInterface {
 
 	/** Get a tracker to keep control of speedup performance and malfunctions */
 	public ArcacheSpeedupTracker getTracker();
+
+	public boolean getCacheIsolation();
 }

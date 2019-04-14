@@ -46,4 +46,12 @@ public interface ArcacheSpeedupConfigurationSetInterface {
 	/** Set a tracker to keep control of speedup performance and malfunctions */
 	public void setTracker(ArcacheSpeedupTracker tracker);
 
+	/**
+	 * Enable the cache isolation (disabled by default), when cache isolation is
+	 * enabled, the stored objects are immutable but with an performance cost. With
+	 * no isolation, if you store an object and alter it after storing, the stored
+	 * object is altered
+	 */
+	public void setCacheIsolation(boolean cacheIsolation);
+
 }

@@ -4,10 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.Future;
 
@@ -40,6 +42,7 @@ public class ArcacheSpeedupClientTest {
 		client.setObjectsExpirationMillis(1000);
 		client.setMissesCacheSize(1000);
 		client.setMissesExpirationMillis(1000);
+		client.setCacheIsolation(false);
 		client.initialize();
 	}
 
@@ -704,6 +707,47 @@ public class ArcacheSpeedupClientTest {
 		public double nextDouble() {
 			return (rv);
 		}
+	}
+
+	@Test
+	public void testIsolation() throws Exception {
+		client = new ArcacheSpeedupClient();
+		client.setBackendClient(backendClient);
+		client.setInvalidationKeysCacheSize(1000);
+		client.setInvalidationKeysExpirationMillis(10000000L);
+		client.setObjectsCacheSize(1000);
+		client.setObjectsExpirationMillis(10000000L);
+		client.setMissesCacheSize(1000);
+		client.setMissesExpirationMillis(10000000L);
+		client.setCacheIsolation(true);
+		client.initialize();
+
+		HashMap<String, Object> hm = new HashMap<String, Object>();
+		String key = "key";
+		Object ret;
+
+		// Test isolation of normal object
+		client.asyncSet(key, 1234, hm).get();
+		ret = client.asyncGet(key).get();
+		assertEquals(hm, ret);
+		assertNotSame(hm, ret);
+
+		// Test isolation Invalidation Object
+		CacheInvalidationObject cio = new CacheInvalidationObject();
+		cio.invalidationTimestampMillis = 1234567;
+
+		client.asyncSet(key, 1234, cio).get();
+		ret = client.asyncGet(key).get();
+		assertNotSame(cio, ret);
+		assertEquals(cio.invalidationTimestampMillis, ((CacheInvalidationObject) ret).invalidationTimestampMillis);
+		cio.invalidationTimestampMillis = 9999;
+		assertNotEquals(cio.invalidationTimestampMillis, ((CacheInvalidationObject) ret).invalidationTimestampMillis);
+		ret = client.asyncGet(key).get();
+		assertNotEquals(cio.invalidationTimestampMillis, ((CacheInvalidationObject) ret).invalidationTimestampMillis);
+
+		// No need to test isolation against misses, because this type of isolation is
+		// internal
+
 	}
 
 }
