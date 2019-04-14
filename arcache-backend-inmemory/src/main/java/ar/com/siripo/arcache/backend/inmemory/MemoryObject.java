@@ -4,6 +4,6 @@ public class MemoryObject {
 	// Expiration time expressed in milliseconds
 	long expirationTimeMillis;
 
-	byte[] data;
+	Object data;
 
 }

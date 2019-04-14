@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -13,7 +14,6 @@ import java.util.HashSet;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -29,12 +29,8 @@ public class ArcacheInMemoryClientTest {
 		client = new ArcacheInMemoryClient();
 	}
 
-	@After
-	public void tearDown() throws Exception {
-	}
-
 	@Test
-	public void testGetSet() throws Exception {
+	public void testGetSetNoIsolation() throws Exception {
 		HashSet<String> hs = new HashSet<String>();
 		hs.add("OTHER");
 
@@ -52,6 +48,31 @@ public class ArcacheInMemoryClientTest {
 
 		assertEquals(retrievedValue, hs);
 
+		// With NO isolation, exactly the seme object is expected
+		assertSame(hs, retrievedValue);
+	}
+
+	@Test
+	public void testGetSetIsolation() throws Exception {
+		client = new ArcacheInMemoryClient(100, true);
+		HashSet<String> hs = new HashSet<String>();
+		hs.add("OTHER");
+
+		Future<Boolean> setFuture = client.asyncSet("TESTCLIENT", 10000, hs);
+
+		assertTrue(setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue());
+
+		Future<Object> getFuture = client.asyncGet("TESTCLIENT");
+
+		Object retrievedValue = getFuture.get(50, TimeUnit.MILLISECONDS);
+
+		assertNotNull(retrievedValue);
+
+		assertThat(retrievedValue, instanceOf(hs.getClass()));
+
+		assertEquals(retrievedValue, hs);
+
+		// With isolation, NOT the seme object is expected
 		assertNotSame(retrievedValue, hs);
 	}
 

@@ -133,4 +133,12 @@ public class ArcacheSpeedupClientFactoryBeanTest {
 		assertEquals(bt, speedupClient.getTracker());
 	}
 
+	@Test
+	public void testSetCacheIsolation() {
+		factoryBean.setCacheIsolation(true);
+		assertEquals(true, speedupClient.getCacheIsolation());
+
+		factoryBean.setCacheIsolation(false);
+		assertEquals(false, speedupClient.getCacheIsolation());
+	}
 }

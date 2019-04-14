@@ -21,18 +21,31 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 
 	protected int lruMaxSize = 1000;
 
+	/**
+	 * When cache is isolated, all the stored objects are serialized to be stored,
+	 * And deserialized to be retrieved from cache
+	 */
+	protected boolean cacheIsolation;
+
 	public ArcacheInMemoryClient() {
-		this(1000);
+		this(1000, false);
 	}
 
 	public ArcacheInMemoryClient(int maxSize) {
+		this(maxSize, false);
+	}
+
+	public ArcacheInMemoryClient(int maxSize, boolean cacheIsolation) {
 		this.lruMaxSize = maxSize;
+		this.cacheIsolation = cacheIsolation;
 		initialize();
 	}
 
 	private void initialize() {
 		storage = new LRUMap<String, MemoryObject>(lruMaxSize);
-		objectSerializer = new ObjectSerializer();
+		if (cacheIsolation) {
+			objectSerializer = new ObjectSerializer();
+		}
 	}
 
 	@Override
@@ -55,7 +68,11 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 		Object obj = null;
 		if (inMemoryObject != null) {
 			if (inMemoryObject.expirationTimeMillis > System.currentTimeMillis()) {
-				obj = objectSerializer.deserialize(inMemoryObject.data);
+				if (cacheIsolation) {
+					obj = objectSerializer.deserialize((byte[]) inMemoryObject.data);
+				} else {
+					obj = inMemoryObject.data;
+				}
 			}
 		}
 		return obj;
@@ -65,7 +82,11 @@ public class ArcacheInMemoryClient implements ArcacheBackendClient {
 
 		MemoryObject inMemoryObject = new MemoryObject();
 		inMemoryObject.expirationTimeMillis = System.currentTimeMillis() + ttlMillis;
-		inMemoryObject.data = objectSerializer.serializeToByteArray(value);
+		if (cacheIsolation) {
+			inMemoryObject.data = objectSerializer.serializeToByteArray(value);
+		} else {
+			inMemoryObject.data = value;
+		}
 
 		synchronized (storage) {
 			storage.put(key, inMemoryObject);

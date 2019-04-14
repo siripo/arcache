@@ -36,6 +36,8 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 
 	protected ArcacheSpeedupTracker tracker = null;
 
+	protected boolean cacheIsolation = false;
+
 	protected ArcacheInMemoryClient invalidationKeysCache = null;
 	protected ArcacheInMemoryClient objectsCache = null;
 	protected ArcacheInMemoryClient missesCache = null;
@@ -163,6 +165,16 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 		return tracker;
 	}
 
+	@Override
+	public boolean getCacheIsolation() {
+		return cacheIsolation;
+	}
+
+	@Override
+	public void setCacheIsolation(boolean cacheIsolation) {
+		this.cacheIsolation = cacheIsolation;
+	}
+
 	public void initialize() {
 		if (initialized) {
 			throw new IllegalStateException("Already Initialized");
@@ -172,21 +184,22 @@ public class ArcacheSpeedupClient implements ArcacheBackendClient, ArcacheSpeedu
 			if ((invalidationKeysCacheSize == 0) || (invalidationKeysExpirationMillis == 0)) {
 				throw new IllegalArgumentException("InvalidationKeys Cache Policy is invalid");
 			}
-			invalidationKeysCache = new ArcacheInMemoryClient(invalidationKeysCacheSize);
+			invalidationKeysCache = new ArcacheInMemoryClient(invalidationKeysCacheSize, cacheIsolation);
 		}
 
 		if ((objectsCacheSize != 0) || (objectsExpirationMillis != 0)) {
 			if ((objectsCacheSize == 0) || (objectsExpirationMillis == 0)) {
 				throw new IllegalArgumentException("Objects Cache Policy is invalid");
 			}
-			objectsCache = new ArcacheInMemoryClient(objectsCacheSize);
+			objectsCache = new ArcacheInMemoryClient(objectsCacheSize, cacheIsolation);
 		}
 
 		if ((missesCacheSize != 0) || (missesExpirationMillis != 0)) {
 			if ((missesCacheSize == 0) || (missesExpirationMillis == 0)) {
 				throw new IllegalArgumentException("Misses Cache Policy is invalid");
 			}
-			missesCache = new ArcacheInMemoryClient(missesCacheSize);
+			// The misses cache is never isolated
+			missesCache = new ArcacheInMemoryClient(missesCacheSize, false);
 		}
 
 		if ((objectsCache == null) && (invalidationKeysCache == null) && (missesCache == null)) {
