@@ -27,6 +27,12 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	protected ProbabilityFunction invalidationProbabilityFunction;
 
 	protected ArcacheBackendClient backendClient;
+	/**
+	 * The userConfiguredInvalidationBackendClient is what the user sets, the
+	 * effective backend client used is at effectiveInvalidationBackendClient
+	 */
+	protected ArcacheBackendClient userConfiguredInvalidationBackendClient;
+	protected ArcacheBackendClient effectiveInvalidationBackendClient;
 
 	protected Random randomGenerator;
 
@@ -44,11 +50,29 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	@Override
 	public void setBackendClient(ArcacheBackendClient backendClient) {
 		this.backendClient = backendClient;
+		if (this.userConfiguredInvalidationBackendClient == null) {
+			this.effectiveInvalidationBackendClient = backendClient;
+		}
 	}
 
 	@Override
 	public ArcacheBackendClient getBackendClient() {
 		return backendClient;
+	}
+
+	@Override
+	public void setInvalidationBackendClient(ArcacheBackendClient invalidationBackendClient) {
+		this.userConfiguredInvalidationBackendClient = invalidationBackendClient;
+		if (this.userConfiguredInvalidationBackendClient == null) {
+			this.effectiveInvalidationBackendClient = this.backendClient;
+		} else {
+			this.effectiveInvalidationBackendClient = this.userConfiguredInvalidationBackendClient;
+		}
+	}
+
+	@Override
+	public ArcacheBackendClient getInvalidationBackendClient() {
+		return userConfiguredInvalidationBackendClient;
 	}
 
 	@Override
@@ -236,7 +260,7 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	}
 
 	protected Future<CacheGetResult> buildCacheGetterTask(final String key) {
-		return new CacheGetterTask(key, backendClient, (BackendKeyBuilder) this,
+		return new CacheGetterTask(key, backendClient, effectiveInvalidationBackendClient, (BackendKeyBuilder) this,
 				(ArcacheConfigurationGetInterface) this, this.randomGenerator);
 	}
 
@@ -331,8 +355,8 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 
 	protected Future<Boolean> buildInvalidateKeyTask(final String key, final boolean hardInvalidation,
 			final long invalidationWindowMillis) {
-		return new InvalidateKeyTask(key, hardInvalidation, invalidationWindowMillis, backendClient,
-				(BackendKeyBuilder) this, (ArcacheConfigurationGetInterface) this);
+		return new InvalidateKeyTask(key, hardInvalidation, invalidationWindowMillis,
+				effectiveInvalidationBackendClient, (BackendKeyBuilder) this, (ArcacheConfigurationGetInterface) this);
 	}
 
 	/** Create the key to be used in the backend client */

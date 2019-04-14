@@ -23,6 +23,8 @@ public interface ArcacheConfigurationGetInterface {
 
 	public ArcacheBackendClient getBackendClient();
 
+	public ArcacheBackendClient getInvalidationBackendClient();
+
 	public ProbabilityFunction getExpirationProbabilityFunction();
 
 	public ProbabilityFunction getInvalidationProbabilityFunction();

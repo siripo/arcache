@@ -15,6 +15,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 
 	protected final String key;
 	protected final ArcacheBackendClient backendClient;
+	protected final ArcacheBackendClient invalidationBackendClient;
 	protected final BackendKeyBuilder keyBuilder;
 	protected final ArcacheConfigurationGetInterface config;
 	protected final Random random;
@@ -25,10 +26,12 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	protected Future<Object> mainFutureGet;
 	protected HashMap<String, Future<Object>> invalidationKeysFutureGets;
 
-	protected CacheGetterTask(String key, ArcacheBackendClient backendClient, BackendKeyBuilder keyBuilder,
+	protected CacheGetterTask(String key, ArcacheBackendClient backendClient,
+			ArcacheBackendClient invalidationBackendClient, BackendKeyBuilder keyBuilder,
 			ArcacheConfigurationGetInterface config, Random random) {
 		this.key = key;
 		this.backendClient = backendClient;
+		this.invalidationBackendClient = invalidationBackendClient;
 		this.keyBuilder = keyBuilder;
 		this.config = config;
 		this.random = random;
@@ -192,7 +195,8 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 		// Build the missing futures
 		for (final String invkey : cachedObject.invalidationKeys) {
 			if (!invalidationKeysFutureGets.containsKey(invkey)) {
-				Future<Object> fut = backendClient.asyncGet(keyBuilder.createInvalidationBackendKey(invkey));
+				Future<Object> fut = invalidationBackendClient
+						.asyncGet(keyBuilder.createInvalidationBackendKey(invkey));
 				invalidationKeysFutureGets.put(invkey, fut);
 			}
 		}

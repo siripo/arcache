@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import ar.com.siripo.arcache.ArcacheClient;
 import ar.com.siripo.arcache.backend.ArcacheBackendClient;
+import ar.com.siripo.arcache.backend.inmemory.ArcacheInMemoryClient;
 import ar.com.siripo.arcache.math.ProbabilityFunction;
 
 public class ArcacheClientFactoryBeanTest {
@@ -137,6 +138,13 @@ public class ArcacheClientFactoryBeanTest {
 		};
 		factoryBean.setInvalidationProbabilityFunction(myfunc);
 		assertEquals(myfunc, factoryBean.getObject().getInvalidationProbabilityFunction());
+	}
+
+	@Test
+	public void testSetInvalidationBackendClient() throws Exception {
+		ArcacheBackendClient bc = new ArcacheInMemoryClient();
+		factoryBean.setInvalidationBackendClient(bc);
+		assertEquals(bc, factoryBean.getObject().getInvalidationBackendClient());
 	}
 
 }

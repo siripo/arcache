@@ -44,7 +44,7 @@ public class CacheGetterTaskTest {
 	public void testCancel() throws Exception {
 		// Normal case, cancel when not done
 		CacheGetterTask cgt;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 		assertEquals(cgt.isCancelled(), false);
 		assertEquals(cgt.cancel(false), true);
 		assertEquals(cgt.isCancelled(), true);
@@ -57,14 +57,14 @@ public class CacheGetterTaskTest {
 		}
 
 		// When Done, its not cancellable
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 		assertEquals(cgt.get().getClass(), CacheGetResult.class);
 		assertEquals(cgt.isDone(), true);
 		assertEquals(cgt.cancel(false), false);
 		assertEquals(cgt.isCancelled(), false);
 
 		// No exception thrown when mainFutureGet is null
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 		cgt.mainFutureGet = null;
 		assertEquals(cgt.isCancelled(), false);
 		assertEquals(cgt.cancel(false), true);
@@ -85,7 +85,7 @@ public class CacheGetterTaskTest {
 		};
 
 		CacheGetterTask cgt;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 		cgt.mainFutureGet = fut;
 		expectedFlow = false;
 		flowValue = null;
@@ -93,7 +93,7 @@ public class CacheGetterTaskTest {
 		assertEquals(expectedFlow, true);
 		assertEquals(flowValue, Boolean.FALSE);
 
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 		cgt.mainFutureGet = fut;
 		expectedFlow = false;
 		flowValue = null;
@@ -152,7 +152,7 @@ public class CacheGetterTaskTest {
 		};
 
 		CacheGetterTask cgt;
-		cgt = new CacheGetterTask("thekey", bkclient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", bkclient, bkclient, arcache, arcache, random);
 		cgt.mainFutureGet = mainfut;
 
 		try {
@@ -184,7 +184,7 @@ public class CacheGetterTaskTest {
 	@Test
 	public void testGet_valueToReturn() throws Exception {
 		CacheGetterTask cgt;
-		cgt = new CacheGetterTask("thekeyvtr", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekeyvtr", backendClient, backendClient, arcache, arcache, random);
 		assertEquals(cgt.valueToReturn, null);
 		assertEquals(cgt.done, false);
 		cgt.get();
@@ -202,7 +202,7 @@ public class CacheGetterTaskTest {
 		long currentTimeMillis = System.currentTimeMillis();
 
 		// test call to get future in normal flavor
-		cgt = new CacheGetterTask("thekeymf1", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekeymf1", backendClient, backendClient, arcache, arcache, random);
 		cgt.mainFutureGet = new DummyFuture<Object>(null) {
 			@Override
 			public Object get(long timeout, TimeUnit unit)
@@ -217,7 +217,7 @@ public class CacheGetterTaskTest {
 		assertEquals(expectedFlow, true);
 
 		// test timeout without call to get future, timeout reached
-		cgt = new CacheGetterTask("thekeymf2", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekeymf2", backendClient, backendClient, arcache, arcache, random);
 		cgt.mainFutureGet = new DummyFuture<Object>(null) {
 			@Override
 			public Object get(long timeout, TimeUnit unit)
@@ -236,7 +236,7 @@ public class CacheGetterTaskTest {
 		assertEquals(expectedFlow, true);
 
 		// test timeout inside get future
-		cgt = new CacheGetterTask("thekeymf2", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekeymf2", backendClient, backendClient, arcache, arcache, random);
 		cgt.mainFutureGet = new DummyFuture<Object>(null) {
 			@Override
 			public Object get(long timeout, TimeUnit unit)
@@ -257,7 +257,7 @@ public class CacheGetterTaskTest {
 		assertEquals(expectedFlow, true);
 
 		// test InterruptedException inside get future
-		cgt = new CacheGetterTask("thekeymf3", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekeymf3", backendClient, backendClient, arcache, arcache, random);
 		cgt.mainFutureGet = new DummyFuture<Object>(null) {
 			@Override
 			public Object get(long timeout, TimeUnit unit)
@@ -278,7 +278,7 @@ public class CacheGetterTaskTest {
 		assertEquals(expectedFlow, true);
 
 		// test Other rare exception inside get future
-		cgt = new CacheGetterTask("thekeymf4", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekeymf4", backendClient, backendClient, arcache, arcache, random);
 		cgt.mainFutureGet = new DummyFuture<Object>(null) {
 			@Override
 			public Object get(long timeout, TimeUnit unit)
@@ -306,12 +306,12 @@ public class CacheGetterTaskTest {
 		cachedObject.expirationTTLMillis = 10000;
 
 		CacheGetterTask cgt;
-		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		cgt = new CacheGetterTask("xxxx", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(1));
 
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 0), false);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 1), false);
 
-		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0));
+		cgt = new CacheGetterTask("xxxx", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(0));
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5000), false);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5001), true);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 5999), true);
@@ -319,15 +319,15 @@ public class CacheGetterTaskTest {
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6001), true);
 
 		// Test millisecond precision
-		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0.25));
+		cgt = new CacheGetterTask("xxxx", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(0.25));
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6250), false);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 6251), true);
 
-		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(0.5));
+		cgt = new CacheGetterTask("xxxx", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(0.5));
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 7490), false);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 7510), true);
 
-		cgt = new CacheGetterTask("xxxx", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		cgt = new CacheGetterTask("xxxx", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(1));
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9000), false);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 9999), false);
 		assertEquals(cgt.isCachedObjectExpired(cachedObject, 10000), true);
@@ -340,7 +340,7 @@ public class CacheGetterTaskTest {
 		HashMap<String, CacheInvalidationObject> invMap;
 		long currentTimeMillis = System.currentTimeMillis();
 
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 
 		ExpirableCacheObject cachedObject = new ExpirableCacheObject();
 
@@ -374,7 +374,7 @@ public class CacheGetterTaskTest {
 
 		// If the CacheGetterTask is cancelled then loadInvalidationKeys must break with
 		// CancellationException
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 		cachedObject.invalidationKeys = new String[] { "i1", "i2" };
 		cgt.invalidationKeysFutureGets = null;
 		cgt.cancel(false);
@@ -385,7 +385,7 @@ public class CacheGetterTaskTest {
 		}
 
 		// When has no more time, throws TimeoutException
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 		cachedObject.invalidationKeys = new String[] { "i1", "i2" };
 		cgt.invalidationKeysFutureGets = null;
 		try {
@@ -395,7 +395,7 @@ public class CacheGetterTaskTest {
 		}
 
 		// An inner exception loading Invalidation Keys propagate up.
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 		cachedObject.invalidationKeys = new String[] { "i1", "i2" };
 		cgt.invalidationKeysFutureGets = new HashMap<String, Future<Object>>();
 		cgt.invalidationKeysFutureGets.put("i1", new DummyFuture<Object>(null) {
@@ -419,7 +419,7 @@ public class CacheGetterTaskTest {
 
 		// Assert that the inner exception is propagated to CacheGetterTask get
 		arcache.set("magickey", "hola", new String[] { "theinvkey" });
-		cgt = new CacheGetterTask("magickey", backendClient, arcache, arcache, random) {
+		cgt = new CacheGetterTask("magickey", backendClient, backendClient, arcache, arcache, random) {
 			protected HashMap<String, CacheInvalidationObject> loadInvalidationKeys(
 					final ExpirableCacheObject cachedObject, final long startTimeMillis, final long timeoutMillis)
 					throws TimeoutException, InterruptedException, ExecutionException {
@@ -440,7 +440,7 @@ public class CacheGetterTaskTest {
 
 		// Test if getsCacheInvalidationObjectFromFuture is called from
 		// loadInvalidationKeys to test it alone
-		cgt = new CacheGetterTask("kkk", backendClient, arcache, arcache, random) {
+		cgt = new CacheGetterTask("kkk", backendClient, backendClient, arcache, arcache, random) {
 			protected CacheInvalidationObject getsCacheInvalidationObjectFromFuture(Future<Object> future, long timeout)
 					throws InterruptedException, ExecutionException, TimeoutException {
 				expectedFlow = true;
@@ -463,7 +463,7 @@ public class CacheGetterTaskTest {
 	@Test
 	public void testGetsCacheInvalidationObjectFromFuture() throws Exception {
 		CacheGetterTask cgt;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 
 		// test basic behavior, a miss
 		Future<Object> fut = new DummyFuture<Object>(null);
@@ -515,7 +515,7 @@ public class CacheGetterTaskTest {
 		CacheGetterTask cgt;
 		arcache.setTimeMeasurementErrorMillis(5000);
 
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, random);
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
 
 		long currentTimeMillis = System.currentTimeMillis();
 		ExpirableCacheObject cachedObject = new ExpirableCacheObject();
@@ -587,25 +587,30 @@ public class CacheGetterTaskTest {
 		cachedObject.timestampMillis = currentTimeMillis - 5000;
 		cio.invalidationTimestampMillis = currentTimeMillis - 0;
 		cio.invalidationWindowMillis = 20000;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(0));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNotNull(invKey);
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.2));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache,
+				new StaticDoubleRandom(0.2));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNotNull(invKey);
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.249));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache,
+				new StaticDoubleRandom(0.249));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNotNull(invKey);
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.25));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache,
+				new StaticDoubleRandom(0.25));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNull(invKey);
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.50));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache,
+				new StaticDoubleRandom(0.50));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNull(invKey);
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.75));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache,
+				new StaticDoubleRandom(0.75));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNull(invKey);
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(1));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNull(invKey);
 
@@ -617,7 +622,7 @@ public class CacheGetterTaskTest {
 		cachedObject.timestampMillis = currentTimeMillis - 5000;
 		cio.invalidationTimestampMillis = currentTimeMillis - 0;
 		cio.invalidationWindowMillis = 10000;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(0));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNotNull(invKey);
 
@@ -629,7 +634,7 @@ public class CacheGetterTaskTest {
 		cachedObject.timestampMillis = currentTimeMillis - 5000;
 		cio.invalidationTimestampMillis = currentTimeMillis - 0;
 		cio.invalidationWindowMillis = 10000;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(1));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNull(invKey);
 
@@ -643,7 +648,7 @@ public class CacheGetterTaskTest {
 		cio.invalidationTimestampMillis = currentTimeMillis - 0;
 		cio.invalidationWindowMillis = 10000;
 		cio.lastHardInvalidationTimestampMillis = currentTimeMillis - 0;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(1));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertEquals(invKey.hardInvalidation, true);
 
@@ -658,7 +663,7 @@ public class CacheGetterTaskTest {
 		cio.invalidationWindowMillis = 10000;
 		cio.lastHardInvalidationTimestampMillis = 0;
 		cio.lastSoftInvalidationTimestampMillis = currentTimeMillis - 0;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(1));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, new StaticDoubleRandom(1));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertEquals(invKey.hardInvalidation, false);
 
@@ -672,7 +677,8 @@ public class CacheGetterTaskTest {
 		cio.invalidationWindowMillis = 10000;
 		cio.lastHardInvalidationTimestampMillis = 0;
 		cio.lastSoftInvalidationTimestampMillis = 0;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.49));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache,
+				new StaticDoubleRandom(0.49));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNotNull(invKey);
 
@@ -686,7 +692,8 @@ public class CacheGetterTaskTest {
 		cio.invalidationWindowMillis = 10000;
 		cio.lastHardInvalidationTimestampMillis = 0;
 		cio.lastSoftInvalidationTimestampMillis = 0;
-		cgt = new CacheGetterTask("thekey", backendClient, arcache, arcache, new StaticDoubleRandom(0.51));
+		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache,
+				new StaticDoubleRandom(0.51));
 		invKey = cgt.isCachedObjectInvalidated(cachedObject, invalidationMap, currentTimeMillis);
 		assertNull(invKey);
 
