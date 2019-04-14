@@ -99,4 +99,9 @@ public class ArcacheClientFactoryBean
 		client.setInvalidationProbabilityFunction(invalidationProbabilityFunction);
 	}
 
+	@Override
+	public void setInvalidationBackendClient(ArcacheBackendClient invalidationBackendClient) {
+		client.setInvalidationBackendClient(invalidationBackendClient);
+	}
+
 }

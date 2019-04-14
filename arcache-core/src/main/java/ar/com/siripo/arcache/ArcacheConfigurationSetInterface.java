@@ -67,7 +67,20 @@ public interface ArcacheConfigurationSetInterface {
 	 */
 	public void setDefaultStoredObjectRemovalTimeMillis(long removeTimeMillis);
 
+	/**
+	 * Sets the default backend client to store objects and invalidationkeys
+	 * 
+	 * @param backendClient
+	 */
 	public void setBackendClient(ArcacheBackendClient backendClient);
+
+	/**
+	 * Set the invalidation backend client to store invalidationkeys If you null
+	 * this, then the defaultBackendClient is used.
+	 * 
+	 * @param invalidationBackendClient
+	 */
+	public void setInvalidationBackendClient(ArcacheBackendClient invalidationBackendClient);
 
 	/**
 	 * Sets the function to be used to compute the probability of a key has expired

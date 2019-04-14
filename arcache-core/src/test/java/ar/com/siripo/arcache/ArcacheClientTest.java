@@ -479,6 +479,93 @@ public class ArcacheClientTest {
 
 	}
 
+	@Test
+	public void testEffectiveInvalidationBackendClient() throws Exception {
+		ArcacheInMemoryClient invClient = new ArcacheInMemoryClient();
+		arcache.setInvalidationBackendClient(null);
+		assertEquals(arcache.backendClient, arcache.effectiveInvalidationBackendClient);
+		arcache.setInvalidationBackendClient(invClient);
+		assertEquals(invClient, arcache.effectiveInvalidationBackendClient);
+		assertEquals(backendClient, arcache.backendClient);
+		arcache.setInvalidationBackendClient(null);
+		assertEquals(arcache.backendClient, arcache.effectiveInvalidationBackendClient);
+		assertEquals(backendClient, arcache.backendClient);
+
+		arcache.setInvalidationBackendClient(null);
+		ArcacheInMemoryClient newClient = new ArcacheInMemoryClient();
+		arcache.setBackendClient(newClient);
+		assertEquals(newClient, arcache.effectiveInvalidationBackendClient);
+		assertEquals(newClient, arcache.backendClient);
+
+		arcache.setInvalidationBackendClient(invClient);
+		assertEquals(invClient, arcache.effectiveInvalidationBackendClient);
+		assertEquals(newClient, arcache.backendClient);
+
+		ArcacheInMemoryClient newClient2 = new ArcacheInMemoryClient();
+		arcache.setBackendClient(newClient2);
+		assertEquals(invClient, arcache.effectiveInvalidationBackendClient);
+		assertEquals(newClient2, arcache.backendClient);
+
+		arcache.setInvalidationBackendClient(null);
+		assertEquals(newClient2, arcache.effectiveInvalidationBackendClient);
+		assertEquals(newClient2, arcache.backendClient);
+
+	}
+
+	@Test
+	public void testInvalidationBackendClientUssage() throws Exception {
+
+		arcache.setDefaultExpirationTimeMillis(10000000L);
+		arcache.setDefaultInvalidationWindowMillis(100L);
+		arcache.setDefaultOperationTimeoutMillis(60000L);
+		arcache.setTimeMeasurementErrorMillis(0);
+
+		// In normal behavior the invkey is stored and restored in backendClient
+		arcache.setInvalidationBackendClient(null);
+
+		assertNull(arcache.backendClient.asyncGet(arcache.createInvalidationBackendKey("invkey")).get());
+		arcache.invalidateKey("invkey");
+		assertNotNull(arcache.backendClient.asyncGet(arcache.createInvalidationBackendKey("invkey")).get());
+
+		assertNull(arcache.backendClient.asyncGet(arcache.createBackendKey("key")).get());
+		arcache.set("key", "hello", new String[] { "invkey" });
+		assertNotNull(arcache.backendClient.asyncGet(arcache.createBackendKey("key")).get());
+		ExpirableCacheObject expobj = (ExpirableCacheObject) arcache.backendClient
+				.asyncGet(arcache.createBackendKey("key")).get();
+		expobj.timestampMillis = expobj.timestampMillis - 1000;
+
+		arcache.backendClient.asyncSet(arcache.createBackendKey("key"), 1000000, expobj).get();
+
+		CacheGetResult cgr = arcache.getCacheObject("key");
+		assertEquals(CacheGetResult.Type.INVALIDATED, cgr.type);
+
+		// Now using invalidation Backend
+		backendClient.clear();
+		ArcacheInMemoryClient invBackend = new ArcacheInMemoryClient();
+		arcache.setInvalidationBackendClient(invBackend);
+
+		assertNull(backendClient.asyncGet(arcache.createInvalidationBackendKey("invkey")).get());
+		arcache.invalidateKey("invkey");
+		assertNull(backendClient.asyncGet(arcache.createInvalidationBackendKey("invkey")).get());
+		assertNotNull(invBackend.asyncGet(arcache.createInvalidationBackendKey("invkey")).get());
+
+		assertNull(arcache.backendClient.asyncGet(arcache.createBackendKey("key")).get());
+		arcache.set("key", "hello", new String[] { "invkey" });
+		assertNotNull(arcache.backendClient.asyncGet(arcache.createBackendKey("key")).get());
+		expobj = (ExpirableCacheObject) arcache.backendClient.asyncGet(arcache.createBackendKey("key")).get();
+		expobj.timestampMillis = expobj.timestampMillis - 1000;
+
+		arcache.backendClient.asyncSet(arcache.createBackendKey("key"), 1000000, expobj).get();
+
+		cgr = arcache.getCacheObject("key");
+		assertEquals(CacheGetResult.Type.INVALIDATED, cgr.type);
+
+		invBackend.clear();
+		cgr = arcache.getCacheObject("key");
+		assertEquals(CacheGetResult.Type.HIT, cgr.type);
+
+	}
+
 	@SuppressWarnings("serial")
 	private static class StaticDoubleRandom extends Random {
 		double rv;
