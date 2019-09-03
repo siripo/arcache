@@ -104,4 +104,9 @@ public class ArcacheClientFactoryBean
 		client.setInvalidationBackendClient(invalidationBackendClient);
 	}
 
+	@Override
+	public void setRelaxOperationTimeoutInHeavyLoadSystem(boolean relaxOperationTimeoutInHeavyLoadSystem) {
+		client.setRelaxOperationTimeoutInHeavyLoadSystem(relaxOperationTimeoutInHeavyLoadSystem);
+	}
+
 }

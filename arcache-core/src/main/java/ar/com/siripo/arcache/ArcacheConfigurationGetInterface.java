@@ -7,6 +7,8 @@ public interface ArcacheConfigurationGetInterface {
 
 	public long getDefaultOperationTimeoutMillis();
 
+	public boolean getRelaxOperationTimeoutInHeavyLoadSystem();
+
 	public long getTimeMeasurementErrorMillis();
 
 	public long getDefaultInvalidationWindowMillis();

@@ -216,8 +216,10 @@ public class CacheGetterTaskTest {
 		assertEquals(cgt.doTask(currentTimeMillis, 1000).getClass(), CacheGetResult.class);
 		assertEquals(expectedFlow, true);
 
-		// test timeout without call to get future, timeout reached
+		// test timeout without call to get future, timeout reached when configured to
+		// Not Relax Timeouts
 		cgt = new CacheGetterTask("thekeymf2", backendClient, backendClient, arcache, arcache, random);
+		cgt.relaxOperationTimeoutInHeavyLoadSystem = false;
 		cgt.mainFutureGet = new DummyFuture<Object>(null) {
 			@Override
 			public Object get(long timeout, TimeUnit unit)
@@ -233,6 +235,23 @@ public class CacheGetterTaskTest {
 		} catch (TimeoutException e) {
 
 		}
+		assertEquals(expectedFlow, true);
+
+		// test call to get future, timeout not reached when configured to Relax
+		// Timeouts
+		cgt = new CacheGetterTask("thekeymf2", backendClient, backendClient, arcache, arcache, random);
+		cgt.relaxOperationTimeoutInHeavyLoadSystem = true;
+		cgt.mainFutureGet = new DummyFuture<Object>(null) {
+			@Override
+			public Object get(long timeout, TimeUnit unit)
+					throws InterruptedException, ExecutionException, TimeoutException {
+				expectedFlow = true;
+				return flowValue;
+			}
+		};
+		expectedFlow = false;
+		flowValue = new ExpirableCacheObject();
+		assertEquals(cgt.doTask(currentTimeMillis - 5000, 1000).getClass(), CacheGetResult.class);
 		assertEquals(expectedFlow, true);
 
 		// test timeout inside get future
@@ -384,8 +403,9 @@ public class CacheGetterTaskTest {
 		} catch (CancellationException ce) {
 		}
 
-		// When has no more time, throws TimeoutException
+		// When has no more time, throws TimeoutException if NOT relax timeout
 		cgt = new CacheGetterTask("thekey", backendClient, backendClient, arcache, arcache, random);
+		cgt.relaxOperationTimeoutInHeavyLoadSystem = false;
 		cachedObject.invalidationKeys = new String[] { "i1", "i2" };
 		cgt.invalidationKeysFutureGets = null;
 		try {
@@ -458,6 +478,77 @@ public class CacheGetterTaskTest {
 			assertEquals(ee, flowValue);
 			assertTrue(expectedFlow);
 		}
+
+		// When has no more time but relax timeout, and not under load, use remaining
+		// time
+		currentTimeMillis = System.currentTimeMillis();
+		cgt = new CacheGetterTask("kkk", backendClient, backendClient, arcache, arcache, random) {
+			protected CacheInvalidationObject getsCacheInvalidationObjectFromFuture(Future<Object> future, long timeout)
+					throws InterruptedException, ExecutionException, TimeoutException {
+				expectedFlow = true;
+				flowValue = timeout;
+				return null;
+			}
+		};
+		cachedObject.invalidationKeys = new String[] { "i1" };
+		expectedFlow = false;
+		flowValue = null;
+		cgt.loadInvalidationKeys(cachedObject, currentTimeMillis - 5000, 10000);
+		assertTrue(expectedFlow);
+		assertEquals(((Long) flowValue).doubleValue(), 5000, 100);
+
+		// When has no more time but relax timeout, and not under load, use remaining
+		// time, but if remaining is little use a 20% of timeout
+		currentTimeMillis = System.currentTimeMillis();
+		cgt = new CacheGetterTask("kkk", backendClient, backendClient, arcache, arcache, random) {
+			protected CacheInvalidationObject getsCacheInvalidationObjectFromFuture(Future<Object> future, long timeout)
+					throws InterruptedException, ExecutionException, TimeoutException {
+				expectedFlow = true;
+				flowValue = timeout;
+				return null;
+			}
+		};
+		cachedObject.invalidationKeys = new String[] { "i1" };
+		expectedFlow = false;
+		flowValue = null;
+		cgt.loadInvalidationKeys(cachedObject, currentTimeMillis - 9900, 10000);
+		assertTrue(expectedFlow);
+		assertEquals(((Long) flowValue).doubleValue(), 10000 / 5, 1);
+
+		// When has no more time but relax timeout, and under load, use full timeout
+		currentTimeMillis = System.currentTimeMillis();
+		cgt = new CacheGetterTask("kkk", backendClient, backendClient, arcache, arcache, random) {
+			protected CacheInvalidationObject getsCacheInvalidationObjectFromFuture(Future<Object> future, long timeout)
+					throws InterruptedException, ExecutionException, TimeoutException {
+				expectedFlow = true;
+				flowValue = timeout;
+				return null;
+			}
+		};
+		cachedObject.invalidationKeys = new String[] { "i1" };
+		expectedFlow = false;
+		flowValue = null;
+		cgt.loadInvalidationKeys(cachedObject, currentTimeMillis - 7890, 500);
+		assertTrue(expectedFlow);
+		assertEquals(((Long) flowValue).doubleValue(), 500, 1);
+
+		// When not relaxing, use remaining time
+		currentTimeMillis = System.currentTimeMillis();
+		cgt = new CacheGetterTask("kkk", backendClient, backendClient, arcache, arcache, random) {
+			protected CacheInvalidationObject getsCacheInvalidationObjectFromFuture(Future<Object> future, long timeout)
+					throws InterruptedException, ExecutionException, TimeoutException {
+				expectedFlow = true;
+				flowValue = timeout;
+				return null;
+			}
+		};
+		cgt.relaxOperationTimeoutInHeavyLoadSystem = false;
+		cachedObject.invalidationKeys = new String[] { "i1" };
+		expectedFlow = false;
+		flowValue = null;
+		cgt.loadInvalidationKeys(cachedObject, currentTimeMillis - 5000, 10000);
+		assertTrue(expectedFlow);
+		assertEquals(((Long) flowValue).doubleValue(), 5000, 100);
 	}
 
 	@Test

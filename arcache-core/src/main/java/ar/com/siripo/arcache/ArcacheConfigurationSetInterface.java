@@ -13,6 +13,21 @@ public interface ArcacheConfigurationSetInterface {
 	public void setDefaultOperationTimeoutMillis(long timeoutMillis);
 
 	/**
+	 * In heavy loaded systems when CPU is at top, and with too many threads running
+	 * concurrently, the time measurements are imperfect, because the time is spend
+	 * in another thread and not in the IO operation. In that cases all the time on
+	 * a Get operation is spent in the first get of the object key. No timeout is
+	 * achieved but the seen time of the get operation is much higher than timeout
+	 * (a signal of overload or a backend bug). In this scenario if the object has
+	 * invalidation keys is a dilemma, 1. timeout the all the operation, possibly
+	 * adding more load to the system or 2. relax the timeout and get the
+	 * invalidation objects
+	 * 
+	 * @param relaxOperationTimeoutInHeavyLoadSystem (default true)
+	 */
+	public void setRelaxOperationTimeoutInHeavyLoadSystem(boolean relaxOperationTimeoutInHeavyLoadSystem);
+
+	/**
 	 * Error total en la medicion de tiempos expresado en mili segundos debe ser
 	 * 1000 + maxClockOffset + maxKeyCreationTime maxClockOffset (diferencia maxima
 	 * entre 2 relojes de la infraestructura involucrada) maxKeyCreationTime (Tiempo

@@ -43,7 +43,7 @@ public class ArcacheMemcachedClientTest {
 		HashSet<String> hs = new HashSet<String>();
 		hs.add("THEVALUE");
 
-		Future<Boolean> setFuture = memcachedClient.set("TESTMEMCACHEKEY", 10, hs);
+		Future<Boolean> setFuture = memcachedClient.set("TESTMEMCACHEKEY", 10000, hs);
 
 		try {
 			if (!setFuture.get(50, TimeUnit.MILLISECONDS).booleanValue()) {
