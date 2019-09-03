@@ -22,6 +22,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 	protected boolean cancelled = false;
 	protected boolean done = false;
 	protected CacheGetResult valueToReturn;
+	protected boolean relaxOperationTimeoutInHeavyLoadSystem;
 
 	protected Future<Object> mainFutureGet;
 	protected HashMap<String, Future<Object>> invalidationKeysFutureGets;
@@ -35,6 +36,7 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 		this.keyBuilder = keyBuilder;
 		this.config = config;
 		this.random = random;
+		this.relaxOperationTimeoutInHeavyLoadSystem = config.getRelaxOperationTimeoutInHeavyLoadSystem();
 
 		start();
 	}
@@ -98,10 +100,16 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			return valueToReturn;
 		}
 
-		long remainingTimeMillis = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
+		long remainingTimeMillis;
 
-		if (remainingTimeMillis <= 0) {
-			throw new TimeoutException();
+		// In relaxed mode uses the timeout parameter else compute the remaining time
+		if (relaxOperationTimeoutInHeavyLoadSystem) {
+			remainingTimeMillis = timeoutMillis;
+		} else {
+			remainingTimeMillis = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
+			if (remainingTimeMillis <= 0) {
+				throw new TimeoutException();
+			}
 		}
 
 		Object rawCachedObject = mainFutureGet.get(remainingTimeMillis, TimeUnit.MILLISECONDS);
@@ -184,6 +192,13 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 			final long startTimeMillis, final long timeoutMillis)
 			throws TimeoutException, InterruptedException, ExecutionException {
 
+		boolean systemUnderLoad = false;
+		if (relaxOperationTimeoutInHeavyLoadSystem) {
+			if ((System.currentTimeMillis() - startTimeMillis) > timeoutMillis) {
+				systemUnderLoad = true;
+			}
+		}
+
 		if ((cachedObject.invalidationKeys == null) || (cachedObject.invalidationKeys.length <= 0)) {
 			return (null);
 		}
@@ -211,17 +226,26 @@ public class CacheGetterTask implements Future<CacheGetResult> {
 				throw new CancellationException();
 			}
 
-			// If have no more time, throws timeout
 			long remainingTimeMillis = timeoutMillis - (System.currentTimeMillis() - startTimeMillis);
-			if (remainingTimeMillis <= 0) {
-				throw new TimeoutException();
+
+			if (!relaxOperationTimeoutInHeavyLoadSystem) {
+				if (remainingTimeMillis <= 0) {
+					throw new TimeoutException();
+				}
+			} else {
+				if (systemUnderLoad) {
+					remainingTimeMillis = timeoutMillis;
+				} else {
+					// as minimum 1 millisecond or 20% of timeout or the remaining time
+					remainingTimeMillis = Math.max(1L, Math.max(remainingTimeMillis, timeoutMillis / 5));
+				}
+
 			}
 
 			// Load the key
 			CacheInvalidationObject invObj = getsCacheInvalidationObjectFromFuture(
 					invalidationKeysFutureGets.get(invkey), remainingTimeMillis);
 			invMap.put(invkey, invObj);
-
 		}
 
 		return invMap;
