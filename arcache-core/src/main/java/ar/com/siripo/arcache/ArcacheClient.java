@@ -15,6 +15,7 @@ import ar.com.siripo.arcache.util.DummyFuture;
 public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder {
 
 	protected long defaultOperationTimeoutMillis = 500;
+	protected boolean relaxOperationTimeoutInHeavyLoadSystem = true;
 	protected long timeMeasurementErrorMillis = 3000;
 	protected long defaultInvalidationWindowMillis = 5000;
 	protected boolean defaultHardInvalidation = true;
@@ -86,6 +87,16 @@ public class ArcacheClient implements ArcacheClientInterface, BackendKeyBuilder 
 	@Override
 	public long getDefaultOperationTimeoutMillis() {
 		return defaultOperationTimeoutMillis;
+	}
+
+	@Override
+	public void setRelaxOperationTimeoutInHeavyLoadSystem(boolean relaxOperationTimeoutInHeavyLoadSystem) {
+		this.relaxOperationTimeoutInHeavyLoadSystem = relaxOperationTimeoutInHeavyLoadSystem;
+	}
+
+	@Override
+	public boolean getRelaxOperationTimeoutInHeavyLoadSystem() {
+		return relaxOperationTimeoutInHeavyLoadSystem;
 	}
 
 	@Override

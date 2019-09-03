@@ -147,4 +147,12 @@ public class ArcacheClientFactoryBeanTest {
 		assertEquals(bc, factoryBean.getObject().getInvalidationBackendClient());
 	}
 
+	@Test
+	public void testSetRelaxOperationTimeoutInHeavyLoadSystem() throws Exception {
+		factoryBean.setRelaxOperationTimeoutInHeavyLoadSystem(false);
+		assertEquals(false, factoryBean.getObject().getRelaxOperationTimeoutInHeavyLoadSystem());
+		factoryBean.setRelaxOperationTimeoutInHeavyLoadSystem(true);
+		assertEquals(true, factoryBean.getObject().getRelaxOperationTimeoutInHeavyLoadSystem());
+	}
+
 }

@@ -1,6 +1,8 @@
 package ar.com.siripo.arcache;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.Before;
@@ -28,6 +30,16 @@ public class ArcacheConfigurationInterfaceTest {
 			fail();
 		} catch (IllegalArgumentException e) {
 		}
+	}
+
+	@Test
+	public void testSetRelaxOperationTimeoutInHeavyLoadSystem() {
+		assertTrue("RelaxOperationTimeoutInHeavyLoadSystem default is expected to be true",
+				config.getRelaxOperationTimeoutInHeavyLoadSystem());
+		config.setRelaxOperationTimeoutInHeavyLoadSystem(false);
+		assertFalse(config.getRelaxOperationTimeoutInHeavyLoadSystem());
+		config.setRelaxOperationTimeoutInHeavyLoadSystem(true);
+		assertTrue(config.getRelaxOperationTimeoutInHeavyLoadSystem());
 	}
 
 	@Test
