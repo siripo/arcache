@@ -1,0 +1,55 @@
+Sonatype Jira Ticket for Repo
+https://issues.sonatype.org/browse/OSSRH-44518
+
+Explicacion full Maven
+https://central.sonatype.org/pages/apache-maven.html
+
+# Para cambiar la version a 1.0.0
+mvn versions:set -DnewVersion=1.0.0
+#mvn versions:set -DnewVersion=0.0.1-SNAPSHOT
+
+
+# Explicacion completa para generar una release
+
+## 1. tener todo el codigo en develop
+git checkout develop
+git pull
+
+## 2. verificar que para maven este ok
+IMPORTANTE!! Deshabilitar en eclipse el build automatico: Project / Build Automaticaly
+mvn clean 
+mvn test 
+mvn package
+
+## 3. Cambiar la version a la de interes
+mvn versions:set -DnewVersion=1.2.0
+
+## 4. Construir la release y subirla a maven
+
+eval $(gpg-agent --daemon)
+mvn clean deploy
+
+## 5. Subir a github la version
+
+git add .
+git commit -am "Released v1.1.0"
+git push
+
+## 6. Crear en github un pr hacia master
+https://github.com/siripo/arcache/compare/master...develop
+
+## 7. NO HACER SQUASH AQUI! hacer un simple Merge Commit
+
+## 8. Ir a hacer la release en github
+
+https://github.com/siripo/arcache/releases/new
+
+Tag: v1.1.0
+Target: master
+Release title: v1.1.0
+Description:
+Meter una lista con todos los agregados ej:
+
+* sarasa
+* pepepe
+

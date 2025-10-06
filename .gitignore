@@ -1,9 +1,10 @@
-doc/
-.project
-.classpath
-.settings/
+#doc/
+#.project
+#.classpath
+#.settings/
 /*/target/
 /target/
 /arcache-examples/
 *.versionsBackup
-/local/
+#/local/
+.ipynb_checkpoints/

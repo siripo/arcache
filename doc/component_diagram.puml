@@ -1,0 +1,123 @@
+@startuml "ARCache Component Diagram"
+
+'Advanced Resilient Cache
+
+[InvalidableCacheClient]
+/'
+Esta capa permite invalidar claves del cache sin tener que recorrer todas las claves
+
+Luego de un get puede retornar:
+HIT con el valor
+MISS donde el valor no existe.
+Expired donde el valor existe pero esta expirado.
+Invalidated donde el valor existe pero esta invalidado.
+Timeout cuando la operacion no se pudo completar por timeout
+Error cuando ocurrio cualquier otro error
+
+Ademas tendra un holder para el valor
+
+
+El get se ejecutara como un Future
+El valor retornado sera siempre un CacheGetResult
+
+'/
+
+
+[ResilientCacheClient]
+/'
+Esta capa implementa el concepto de expiracion logica, permitiendo resolver el problema de la estampida
+Ademas permite dar resiliencia al permitir recuperar claves expiradas cuando está ineccesible el resto del sistema
+
+Retorna lo mismo que Invalidable. pero jamas retorna el valor invalidated
+'/
+
+
+[AbstractCacheClient]
+/'
+Esta capa define una interfaz simple y generica de cache. Lo que permite una abstraccion generica independiente del backend utilizado
+
+La capa superior solo necesita 2 operaciones
+un get asincrono
+la firma del get será super reducida y simple
+retorna un future
+este future retorna el valor geteado
+
+Este calor siempre se mapeará a una estructura que contiene
+value
+timestamp (momento en el cual la key es seteada)
+minexpirettl (tiempo minimo durante el cual la key no expira, cuado se llega a este momento la key inicia su expiracion con probabilidad creciente)
+maxexpirettl (tiempo maximo de expiracion, cuando llega este momento la probabilida de expiracion es 1)
+invalidationKeys String[] (lista de keys de las cuales depende, se leen todas estas para determinar si la key en cuestion es invalidada)
+
+
+
+Cuando se lee una key y esta tiene invalidationKeys estas se buscan tratando de determinar si la clave en cuestion esta invalidada.
+
+
+EL mecanismo para invalidar un conjunto de claves, es definir a que conjuntos pertenece una clave.
+
+Por ejemplo si se define que una key pertenece a los conjuntos [siteAR,personMariano]
+
+y se indica 
+invalidateKeySet("siteAR",invalidationWindow,hardInvalidate:Boolean)
+
+esto implica que siteAR sera marcada como invalida
+a su vez todas las keys que dependen de ellas y tengan timestamp anterior seran marcadas como invalidas
+
+invalidationWindow es una marca que permite que las keys no aparezcan como invalidas todas al mismo instante.
+Basicamente permiten calcular una probabilidad de que una key tenga que ser marcada como invalida.
+Esto permite que la invalidacion no genere un colapso, sino que con una probabilidad algunas keys se marcaran como invalidadas.
+
+
+hardInvalidate, cuando se invoca una invalidacion hard las keys apareceran como miss, no es mas recuperable el valor.
+
+Para simplificar la convivencia de valores normales y claves de invalidacion. estas se se diferenciaran por un prefijo forzado.
+Los valores de las claves de invalidacion seran una estructura totalmente distinta.
+
+
+
+
+'/
+
+
+[MemcacheAdaptor]
+/'
+Adaptador a memcache del cliente
+'/
+[RedisAdaptor]
+
+[Memcache]
+/'
+Aqui reside el cliente real, el provisto por amazon por ejemplo
+MemcachedClient
+https://docs.aws.amazon.com/AmazonElastiCache/latest/mem-ug/AutoDiscovery.Using.html#AutoDiscovery.Using.ModifyApp.Java
+'/
+
+[Redis]
+
+[Generic KVS Adaptor]
+[Generic KVS]
+
+
+[InvalidableCacheClient] --> [ResilientCacheClient]
+
+[ResilientCacheClient] --> [AbstractCacheClient]
+
+[AbstractCacheClient] --> [MemcacheAdaptor]
+
+[AbstractCacheClient] --> [RedisAdaptor]
+
+[AbstractCacheClient] --> [Generic KVS Adaptor]
+
+
+[MemcacheAdaptor] --> [Memcache]
+
+[RedisAdaptor] --> [Redis]
+
+[Generic KVS Adaptor] --> [Generic KVS]
+
+[InMemory] 
+
+[AbstractCacheClient] --> [InMemory] 
+
+@enduml

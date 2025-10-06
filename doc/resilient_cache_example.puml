@@ -1,0 +1,49 @@
+@startuml "ARCache Example" 
+
+(*) --> "Read Cached Value \n cacheClient.get(key)"
+
+--> if "result" then
+    -->[hit] "result=cachedValue" #LightGreen
+    -->(*)
+else
+    -->[miss] "Check System Load" as systemload
+endif
+
+
+
+systemload --> if "" then
+    -->[load=VERYHI OR\n(load=HI AND missType=Expired)] if "" then
+        -->[missType=Expired|softInvalidated] "result=ExpiredCacheValue" as retexpired #D0FF00
+        -->(*)
+    else
+        -->[else] "result=503 Server Busy" #Red
+        --> (*)
+    endif
+else
+    
+endif
+
+partition DangerousZone #FFD0D0 {
+    -->[load=LOW|MEDIUM OR\n(load=HI AND missType!=Expired)] "Do Expensive and Slow Work\nUsing inestable resources" as HardWork
+}
+
+HardWork --> [Happy path] "Store result In cache" #LightGreen
+--> (*)
+
+HardWork .-> [Exception] "Some Server Error"
+--> "CheckCacheMissType" as failover
+
+
+
+
+
+failover --> if "MissType" then
+    --> [expired|softInvalidated] retexpired
+else
+    --> "result=5XX Throw exception" #Red
+    --> (*)
+endif
+
+
+@enduml
+
